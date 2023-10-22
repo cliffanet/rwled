@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:rwdesign/ctrl.dart';
+import 'package:rwdesign/view/ctrl.dart';
+import 'package:rwdesign/view/title.dart';
 import 'package:rwdesign/painter.dart';
 
 void main() {
@@ -16,8 +17,9 @@ class DesignApp extends StatelessWidget {
     // This widget is the root of your application.
     @override
     Widget build(BuildContext context) {
-        return Material(
-            child: Stack(children: [
+        return Scaffold(
+            appBar: PlaceTitle(),
+            body: Stack(children: [
                 CustomPaint(
                     painter: PlacePainter(),
                     size: Size.infinite,

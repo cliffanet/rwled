@@ -1,7 +1,6 @@
 
 
 import 'dart:async';
-import 'dart:ffi';
 import 'package:flutter/material.dart';
 
 class PlayerElement {
@@ -18,15 +17,14 @@ class Player {
     factory Player() { return _p; }
     Player._make();
 
-    final ValueNotifier<int> _notify = ValueNotifier(0);
     int _tm = 0;
     int _max = 60000;
 
-    ValueNotifier<int> get notify => _notify;
+    final ValueNotifier<int> notify = ValueNotifier(0);
     int get tm => _tm;
     set tm(int v) {
         _tm = v;
-        _notify.value++;
+        notify.value++;
     }
     int get max => _max;
 
@@ -43,16 +41,38 @@ class Player {
     final _elem = <PlayerElement>[];
     void add(PlayerElement el) {
         _elem.add(el);
-        _notify.value++;
+        notify.value++;
+        select(_elem.length-1);
     }
     void del(int index) {
         if ((index < 0) || (index >= _elem.length))
             return;
         _elem.removeAt(index);
-        _notify.value++;
+        notify.value++;
+        if (_sel >= _elem.length)
+            select(_elem.length-1);
+    }
+    void delSelected() {
+        if ((_sel >= 0) && (_sel < _elem.length))
+            del(_sel);
     }
     int get cnt => _elem.length;
     PlayerElement elem(int index) => _elem[index];
+
+    int _sel = -1;
+    final ValueNotifier<int> notifySelected = ValueNotifier(0);
+    PlayerElement? get selected => (_sel >= 0) && (_sel < _elem.length) ? _elem[_sel] : null;
+    void select(int index) {
+        if (index < 0) {
+            _sel = -1;
+            notifySelected.value ++;
+        }
+        else
+        if (index < _elem.length) {
+            _sel = index;
+            notifySelected.value ++;
+        }
+    }
 
     Timer ?_play;
     bool get isplay => _play != null;
@@ -67,7 +87,7 @@ class Player {
                     _pnxt();
                 else
                     stop();
-                _notify.value++;
+                notify.value++;
             }
         );
     }
@@ -76,13 +96,13 @@ class Player {
         if (_tm >= _max)
             _tm = 0;
         _pnxt();
-        _notify.value++;
+        notify.value++;
     }
     void stop() {
         if (!isplay) return;
         _play!.cancel();
         _play = null;
-        _notify.value++;
+        notify.value++;
     }
     void playtgl() {
         if (isplay)
