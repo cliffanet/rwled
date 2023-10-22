@@ -1,3 +1,4 @@
+import 'package:confirm_dialog/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:rwdesign/player.dart';
 
@@ -20,7 +21,7 @@ PreferredSizeWidget PlaceTitle() {
         actions: [
             ValueListenableBuilder(
                 valueListenable: p.notifySelected,
-                builder: (_, __, ___) {
+                builder: (context, __, ___) {
                     final del = p.selected != null ?
                         [
                             PopupMenuDivider(),
@@ -38,17 +39,16 @@ PreferredSizeWidget PlaceTitle() {
                     
                     return PopupMenuButton<MenuCode>(
                         tooltip: "Меню",
-                        onSelected: (MenuCode item) {
+                        onSelected: (MenuCode item) async {
                             switch (item) {
                                 case MenuCode.Add:
                                     p.add(PlayerElement('Elem ${n++}'));
                                     break;
                                 case MenuCode.Remove:
-                                    //if (await confirm(context)) {
-                                    //    return print('pressedOK');
-                                    //}
-                                    //return print('pressedCancel');
-                                    p.delSelected();
+                                    if (p.selected == null)
+                                        break;
+                                    if (await confirm(context, content: Text('Удаление: ${p.selected!.title}')))
+                                        p.delSelected();
                                     break;
                             };
                         },
