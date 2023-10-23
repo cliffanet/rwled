@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class PlayerElement {
     final String title;
@@ -162,5 +163,16 @@ class Player {
     void onPointUp(PointerUpEvent e) {
         _moved=null;
         _movec=null;
+    }
+
+    MouseCursor _cursor = MouseCursor.defer;
+    MouseCursor get cursor => _cursor;
+    void onPointHover(PointerHoverEvent e) {
+        MouseCursor c = elByPnt(e.localPosition) >= 0 ?
+            SystemMouseCursors.click :
+            MouseCursor.defer;
+        if (c == _cursor) return;
+        _cursor = c;
+        notify.value++;
     }
 }

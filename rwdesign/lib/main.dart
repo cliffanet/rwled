@@ -30,12 +30,16 @@ class DesignApp extends StatelessWidget {
                             onPointerDown:  Player().onPointDown,
                             onPointerMove:  Player().onPointMove,
                             onPointerUp:    Player().onPointUp,
+                            onPointerHover: Player().onPointHover,
                             onPointerSignal: (pointerSignal) {
                                 print(pointerSignal);
                             },
-                            child: CustomPaint(
-                                painter: PlacePainter(),
-                                size: Size.infinite,
+                            child: MouseRegion(
+                                cursor: Player().cursor,
+                                child: CustomPaint(
+                                    painter: PlacePainter(),
+                                    size: Size.infinite,
+                                )
                             ),
                         );
                     }

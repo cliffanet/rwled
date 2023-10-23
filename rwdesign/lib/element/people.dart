@@ -16,10 +16,10 @@ class People extends PlayerElement {
         final pntF = Paint()
                 ..color = Colors.grey
                 ..style = PaintingStyle.fill;
-                //..maskFilter = MaskFilter.blur(BlurStyle.normal, PlayerElement.convertRadiusToSigma(2));
         final pntB = Paint()
                 ..color = Colors.black
-                ..style = PaintingStyle.stroke;
+                ..style = PaintingStyle.stroke
+                ..maskFilter = MaskFilter.blur(BlurStyle.inner, PlayerElement.convertRadiusToSigma(1));
         
         canvas.drawRect(Rect.fromCenter(center: pos+Offset(0,22), width: 20, height: 16), pntF);
 
