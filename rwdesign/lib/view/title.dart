@@ -1,10 +1,9 @@
 import 'package:confirm_dialog/confirm_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:rwdesign/element/peoplepixel.dart';
 import 'package:rwdesign/player.dart';
 
-enum MenuCode { Add, Remove }
-
-int n = 0;
+enum MenuCode { AddPplPixel, Remove }
 
 PreferredSizeWidget PlaceTitle() {
     final p = Player();
@@ -41,8 +40,8 @@ PreferredSizeWidget PlaceTitle() {
                         tooltip: "Меню",
                         onSelected: (MenuCode item) async {
                             switch (item) {
-                                case MenuCode.Add:
-                                    p.add(PlayerElement('Elem ${n++}'));
+                                case MenuCode.AddPplPixel:
+                                    p.add(PeoplePixel());
                                     break;
                                 case MenuCode.Remove:
                                     if (p.selected == null)
@@ -55,12 +54,12 @@ PreferredSizeWidget PlaceTitle() {
                         itemBuilder: (context) {
                             return [
                                 PopupMenuItem(
-                                    value: MenuCode.Add,
+                                    value: MenuCode.AddPplPixel,
                                     child: Row(
                                         children: const [
                                             Icon(Icons.add, color: Colors.black),
                                             SizedBox(width: 8),
-                                            Text('Добавить'),
+                                            Text('Добавить участника'),
                                         ]
                                     ),
                                 ),

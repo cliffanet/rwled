@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
+import 'package:rwdesign/player.dart';
 
 class PlacePainter extends CustomPainter {
     final void Function(Size size) ?onSize;
@@ -13,7 +14,9 @@ class PlacePainter extends CustomPainter {
         }
 
         canvas.save();
-        developer.log('tap on: $size');
+        //developer.log('tap on: $size');
+
+        Player().paint(canvas, size);
         //canvas.
 
         /*

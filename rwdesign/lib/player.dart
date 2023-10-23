@@ -7,9 +7,23 @@ class PlayerElement {
     final String title;
     PlayerElement (this.title);
 
-    int _tm = 0;
-    int get tm => _tm;
-    set tm(int v) => _tm = v;
+    Offset pos = Offset(0,0);
+    void move(Offset p) {
+        pos = p;
+    }
+
+    bool mypnt(Offset p) {
+        final d = pos-p;
+        return (d.dx.abs() < 10) && (d.dy.abs() < 10);
+    }
+
+    void paint(Canvas canvas, int tm) {
+
+    }
+
+    static double convertRadiusToSigma(double radius) {
+        return radius * 0.57735 + 0.5;
+    }
 }
 
 class Player {
@@ -40,6 +54,7 @@ class Player {
 
     final _elem = <PlayerElement>[];
     void add(PlayerElement el) {
+        el.move(Offset(viewsz.width/2, viewsz.height/2));
         _elem.add(el);
         notify.value++;
         select(_elem.length-1);
@@ -58,6 +73,12 @@ class Player {
     }
     int get cnt => _elem.length;
     PlayerElement elem(int index) => _elem[index];
+    int elByPnt(Offset p) {
+        for (int i = _elem.length-1; i >=0; i--)
+            if (_elem[i].mypnt(p))
+                return i;
+        return -1;
+    }
 
     int _sel = -1;
     final ValueNotifier<int> notifySelected = ValueNotifier(0);
@@ -72,6 +93,16 @@ class Player {
             _sel = index;
             notifySelected.value ++;
         }
+    }
+    void selectByPnt(Offset p) {
+        int i = elByPnt(p);
+        if (i>=0) select(i);
+    }
+
+    Size viewsz = Size(0,0);
+    void paint(Canvas canvas, Size size) {
+        viewsz = size;
+        _elem.forEach((el) { el.paint(canvas, _tm); });
     }
 
     Timer ?_play;
@@ -109,5 +140,27 @@ class Player {
             stop();
         else
             play();
+    }
+
+    PlayerElement? _moved;
+    Offset? _movec;
+    void onPointDown(PointerDownEvent e) {
+        int i = elByPnt(e.localPosition);
+        if (i<0) return;
+        select(i);
+        _moved = selected;
+        if (_moved == null) return;
+        _movec = _moved!.pos-e.localPosition;
+        //print("down: $_movec / ${_moved!.pos}");
+    }
+    void onPointMove(PointerMoveEvent e) {
+        if ((_moved == null) || (_movec == null)) return;
+        _moved!.pos = _movec! + e.localPosition;
+        //print("move: ${_moved!.pos}");
+        notify.value++;
+    }
+    void onPointUp(PointerUpEvent e) {
+        _moved=null;
+        _movec=null;
     }
 }

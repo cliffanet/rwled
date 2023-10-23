@@ -1,4 +1,7 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:rwdesign/player.dart';
 import 'package:rwdesign/view/ctrl.dart';
 import 'package:rwdesign/view/title.dart';
 import 'package:rwdesign/painter.dart';
@@ -20,9 +23,22 @@ class DesignApp extends StatelessWidget {
         return Scaffold(
             appBar: PlaceTitle(),
             body: Stack(children: [
-                CustomPaint(
-                    painter: PlacePainter(),
-                    size: Size.infinite,
+                ValueListenableBuilder(
+                    valueListenable: Player().notify,
+                    builder: (context, value, widget) {
+                        return Listener(
+                            onPointerDown:  Player().onPointDown,
+                            onPointerMove:  Player().onPointMove,
+                            onPointerUp:    Player().onPointUp,
+                            onPointerSignal: (pointerSignal) {
+                                print(pointerSignal);
+                            },
+                            child: CustomPaint(
+                                painter: PlacePainter(),
+                                size: Size.infinite,
+                            ),
+                        );
+                    }
                 ),
                 Positioned(
                     width: MediaQuery.of(context).size.width,
