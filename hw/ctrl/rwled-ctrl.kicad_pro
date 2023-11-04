@@ -55,7 +55,10 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        "courtyards_overlap|115237001|41031501|703b4b06-69ce-4d2d-83c5-529e62766c25|fdaf28e5-b1e0-45e5-941d-ccd2ef771fae",
+        "lib_footprint_mismatch|139237000|47690000|703b4b06-69ce-4d2d-83c5-529e62766c25|00000000-0000-0000-0000-000000000000"
+      ],
       "meta": {
         "version": 2
       },
@@ -91,7 +94,7 @@
         "padstack": "warning",
         "pth_inside_courtyard": "ignore",
         "shorting_items": "error",
-        "silk_edge_clearance": "warning",
+        "silk_edge_clearance": "ignore",
         "silk_over_copper": "warning",
         "silk_overlap": "warning",
         "skew_out_of_range": "error",
@@ -172,7 +175,13 @@
         }
       ],
       "track_widths": [
-        0.0
+        0.0,
+        0.4,
+        0.5,
+        0.75,
+        1.0,
+        1.5,
+        2.0
       ],
       "via_dimensions": [
         {
@@ -447,7 +456,7 @@
     "page_layout_descr_file": ""
   },
   "schematic": {
-    "annotate_start_num": 20,
+    "annotate_start_num": 60,
     "drawing": {
       "dashed_lines_dash_length_ratio": 12.0,
       "dashed_lines_gap_length_ratio": 3.0,
