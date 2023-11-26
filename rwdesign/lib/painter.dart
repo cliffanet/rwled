@@ -1,7 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
-import 'package:rwdesign/elemfile.dart';
+import 'package:rwdesign/elemfunc/file.dart';
 import 'package:rwdesign/player.dart';
 
 class PlacePainter extends CustomPainter {
@@ -18,14 +18,7 @@ class PlacePainter extends CustomPainter {
         //developer.log('tap on: $size');
 
         //Player().paint(canvas, size);
-        final x = size.width / 2;
-        final y = size.height / 2;
-        Scenario().forEach((s) {
-            s.draw.forEach((d) {
-                d(canvas, x, y);
-            });
-        });
-        //canvas.
+        ScenarioPaint(canvas);
 
         /*
         // Рисование точки с инфой

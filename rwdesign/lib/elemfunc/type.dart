@@ -3,6 +3,14 @@
 typedef HashItem = Map<String, dynamic>;
 typedef HashList = List<HashItem>;
 
+int? jint(dynamic s, String key) {
+    if (!(s is HashItem)) return null;
+    final v = s[key];
+    if (v is int)
+        return v;
+    return null;
+}
+
 double? jdouble(dynamic s, String key) {
     if (!(s is HashItem)) return null;
     final v = s[key];

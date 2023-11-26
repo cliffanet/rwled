@@ -4,10 +4,12 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
+import 'package:rwdesign/elemfunc/move.dart';
+import 'package:rwdesign/player.dart';
 import 'dart:io';
 
-import 'elemtype.dart';
-import 'parser/draw.dart';
+import 'type.dart';
+import 'draw.dart';
 
 import 'dart:developer' as developer;
 
@@ -76,8 +78,17 @@ class ElemFile {
         (other is ElemFile) &&
         (other._n == this._n);
 
+    // данные
+    final draw = ElemDraw();
+    final move = ElemMove();
+    void _clear() {
+        draw.clear();
+        move.clear();
+    }
+
+    // данные - загрузка
     Future<bool> load(File f) async {
-        clear();
+        _clear();
         final json = jsonDecode(await f.readAsString());
         if (!(json is Map<String, dynamic>)) return false;
         bool ok = true;
@@ -86,28 +97,42 @@ class ElemFile {
         if (
                 (jdraw != null) && (
                     !(jdraw is List<dynamic>) ||
-                    !parseDraw(jdraw, draw)
+                    !draw.load(jdraw)
                 )
             )
             ok = false;
+
+        final jmove = json['move'];
+        if (
+                (jmove != null) && (
+                    !(jmove is List<dynamic>) ||
+                    !move.load(jmove)
+                )
+            )
+            ok = false;
+        
+        Player().max = ScenarioMaxLen();
 
         ScenarioNotify.value++;
         return ok;
     }
 
+    // данные - сброс
     void close() {
         developer.log('(${n++}) canceled on close $logs (${_watch.hashCode.toRadixString(16)})');
         _watch?.cancel();
         _removeme();
-        clear();
+        _clear();
         ScenarioNotify.value++;
     }
 
-    final DrawList draw = [];
-
-    void clear() {
-        draw.clear();
-        ScenarioNotify.value++;
+    // отрисовка
+    void paint(Canvas canvas) {
+        draw.paint(
+            canvas,
+            move.val(ParType.x),
+            move.val(ParType.y)
+        );
     }
 }
 
@@ -161,8 +186,18 @@ void OpenScenarioDir() async {
     developer.log('(${n++}) -----------------');
 }
 
-List<ElemFile> Scenario() {
-    return _all.toList();
+void ScenarioMove(int tm) {
+    _all.forEach((s) => s.move.tm = tm);
+}
+
+void ScenarioPaint(Canvas canvas) {
+    _all.forEach((s) => s.paint(canvas));
+}
+
+int ScenarioMaxLen() {
+    int max = 0;
+    _all.forEach((s) { if (max < s.move.tmlen) max = s.move.tmlen; });
+    return max;
 }
 
 ValueNotifier<int> ScenarioNotify = ValueNotifier(0);

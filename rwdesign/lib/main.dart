@@ -1,7 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
-import 'package:rwdesign/elemfile.dart';
+import 'package:rwdesign/elemfunc/file.dart';
 import 'package:rwdesign/player.dart';
 import 'package:rwdesign/view/ctrl.dart';
 import 'package:rwdesign/painter.dart';
@@ -24,29 +24,6 @@ class DesignApp extends StatelessWidget {
     Widget build(BuildContext context) {
         return Material(
             child: Stack(children: [
-                /*
-                ValueListenableBuilder(
-                    valueListenable: Player().notify,
-                    builder: (context, value, widget) {
-                        return Listener(
-                            onPointerDown:  Player().onPointDown,
-                            onPointerMove:  Player().onPointMove,
-                            onPointerUp:    Player().onPointUp,
-                            onPointerHover: Player().onPointHover,
-                            onPointerSignal: (pointerSignal) {
-                                print(pointerSignal);
-                            },
-                            child: MouseRegion(
-                                cursor: Player().cursor,
-                                child: CustomPaint(
-                                    painter: PlacePainter(),
-                                    size: Size.infinite,
-                                )
-                            ),
-                        );
-                    }
-                ),
-                */
                 ValueListenableBuilder(
                     valueListenable: ScenarioNotify,
                     builder: (context, value, widget) {
