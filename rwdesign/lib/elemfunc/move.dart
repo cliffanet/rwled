@@ -98,6 +98,7 @@ class ElemMove {
 
         bool ok = true;
         int tmc = 0;
+        Map<ParType, double> lst = {};
         s.forEach((d) {
             if (!(d is HashItem)) {
                 ok = false;
@@ -110,8 +111,20 @@ class ElemMove {
 
             final Map<ParType, double> p = {};
             ParType.values.forEach((t) {
-                final v = jdouble(d, t.name);
-                if (v != null) p[t] = v;
+                if (
+                        (d.containsKey('all') && (d['all'] == null)) ||
+                        (d.containsKey(t.name)&& (d[t.name] == null))
+                    ) {
+                    final v = lst[t];
+                    if (v != null) 
+                        p[t] = v;
+                }
+                else {
+                    final v = jdouble(d, t.name);
+                    if (v == null) return;
+                    p[t] = v;
+                    lst[t] = v;
+                }
             });
             if (p.isNotEmpty)
                 _data.add(ElemPos(tmc, p));

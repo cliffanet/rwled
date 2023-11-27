@@ -65,7 +65,7 @@ class Player {
     bool get isplay => _play != null;
     void _pnxt() {
         _play = Timer(
-            Duration(milliseconds: 9),
+            Duration(milliseconds: 8),
             () {
                 _tm += 10;
                 if (_tm > _max)
