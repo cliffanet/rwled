@@ -1,9 +1,11 @@
 
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import 'type.dart';
 
-typedef DrawItem = Function (Canvas canvas, double x, double y);
+typedef DrawItem = Function (Canvas canvas);
 typedef DrawList = List<DrawItem>;
 
 double _convertRadiusToSigma(double radius) {
@@ -29,7 +31,7 @@ Offset? _size(dynamic s) {
     return Offset(w, h);
 }
 
-Path? _path(dynamic s, double x, double y) {
+Path? _path(dynamic s) {
     if (!(s is List<dynamic>)) return null;
 
     final p = Path();
@@ -46,15 +48,15 @@ Path? _path(dynamic s, double x, double y) {
             return;
         }
         if (n == 0) {
-            p.moveTo(x+pos.dx, y+pos.dy);
+            p.moveTo(pos.dx, pos.dy);
         }
         else {
             final bez = _xy(d, 'qbezier');
             if (bez == null) {
-                p.lineTo(x+pos.dx, y+pos.dy);
+                p.lineTo(pos.dx, pos.dy);
             }
             else {
-                p.quadraticBezierTo(x+pos.dx, y+pos.dy, x+bez.dx, y+bez.dy);
+                p.quadraticBezierTo(pos.dx, pos.dy, bez.dx, bez.dy);
             }
         }
         n++;
@@ -97,52 +99,44 @@ class ElemDraw {
                         final siz = _size(d);
                         if (siz == null) break;
                         final rnd = _xy(d, 'round') ?? Offset(0, 0);
-                    
-                        _data.add(
-                            (rnd.dx == 0) && (rnd.dy == 0) ?
-                            (c, x, y) {
-                                final r = Rect.fromCenter(center: Offset(x, y)+cen, width: siz.dx, height: siz.dy);
-                                c.drawRect(r, pntF);
-                                if (!nob) c.drawRect(r, pntB);
-                            } :
-                            (c, x, y) {
-                                final r = RRect.fromRectXY(
-                                    Rect.fromCenter(center: Offset(x, y)+cen, width: siz.dx, height: siz.dy),
-                                    rnd.dx, rnd.dy
-                                );
-                                c.drawRRect(r, pntF);
-                                if (!nob) c.drawRRect(r, pntB);
-                            }
-                        );
+                        final r = Rect.fromCenter(center: cen, width: siz.dx, height: siz.dy);
+                        if ((rnd.dx == 0) && (rnd.dy == 0)) {
+                            _data.add((c) => c.drawRect(r, pntF));
+                            if (!nob)
+                                _data.add((c) => c.drawRect(r, pntB));
+                        }
+                        else {
+                            final rr = RRect.fromRectXY(r, rnd.dx, rnd.dy);
+                            _data.add((c) => c.drawRRect(rr, pntF));
+                            if (!nob)
+                                _data.add((c) => c.drawRRect(rr, pntB));
+                        }
                         break;
                     
                     case 'circle':
                         final rad   = jdouble(d, 'radius') ?? 0;
                         final radxy = _xy(d, 'radius') ?? Offset(0, 0);
-                        if ((rad == 0) && (radxy.dx == 0) && (radxy.dy == 0)) break;
-                    
-                        _data.add(
-                            (radxy.dx == 0) && (radxy.dy == 0) ?
-                            (c, x, y) {
-                                final p = Offset(x, y)+cen;
-                                c.drawCircle(p, rad!, pntF);
-                                if (!nob) c.drawCircle(p, rad!, pntB);
-                            } :
-                            (c, x, y) {
-                                final r = Rect.fromCenter(center: Offset(x, y)+cen, width: radxy.dx, height: radxy.dy);
-                                c.drawOval(r, pntF);
-                                if (!nob) c.drawOval(r, pntB);
-                            }
-                        );
+                        if (rad > 0) {
+                            _data.add((c) => c.drawCircle(cen, rad, pntF));
+                            if (!nob)
+                                _data.add((c) => c.drawCircle(cen, rad, pntB));
+                        }
+                        else
+                        if ((radxy.dx > 0) && (radxy.dy > 0)) {
+                            final r = Rect.fromCenter(center: cen, width: radxy.dx, height: radxy.dy);
+                            _data.add((c) => c.drawOval(r, pntF));
+                            if (!nob)
+                                _data.add((c) => c.drawOval(r, pntB));
+                        }
                         break;
                     
                     case 'path':
-                        _data.add((c, x, y) {
-                            final path = _path(d['path'], x, y);
-                            if (path == null) return;
-                            c.drawPath(path, pntF);
-                            if (!nob) c.drawPath(path, pntB);
-                        });
+                        final path = _path(d['path']);
+                        if (path != null) {
+                            _data.add((c) => c.drawPath(path, pntF));
+                            if (!nob)
+                                _data.add((c) => c.drawPath(path, pntB));
+                        }
                         break;
 
                     default: ok = false;
@@ -153,7 +147,18 @@ class ElemDraw {
         return ok;
     }
 
-    void paint(Canvas canvas, double x, double y) {
-        _data.forEach((d) => d(canvas, x, y));
+    void paint(Canvas canvas, double x, double y, double r) {
+        final ang = r*pi/180;
+        canvas.save();
+        canvas.rotate(ang);
+        canvas.translate(
+            // translate он будет делать под углом, заданым предыдущим rotate(),
+            // поэтому координаты перемещения надо тоже провернуть,
+            // но в обратную сторону
+            x * cos(-ang) - y * sin(-ang),
+            x * sin(-ang) + y * cos(-ang)
+        );
+        _data.forEach((d) => d(canvas));
+        canvas.restore();
     }
 }

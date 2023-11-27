@@ -14,7 +14,7 @@ class PlacePainter extends CustomPainter {
             onSize!(size);
         }
 
-        canvas.save();
+        //canvas.save();
         //developer.log('tap on: $size');
 
         //Player().paint(canvas, size);
@@ -62,7 +62,7 @@ class PlacePainter extends CustomPainter {
         }
         */
 
-        canvas.restore();
+        //canvas.restore();
     }
 
     @override

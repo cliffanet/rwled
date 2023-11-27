@@ -131,7 +131,8 @@ class ElemFile {
         draw.paint(
             canvas,
             move.val(ParType.x),
-            move.val(ParType.y)
+            move.val(ParType.y),
+            move.val(ParType.r),
         );
     }
 }
