@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
-import 'package:rwdesign/elemfunc/move.dart';
-import 'package:rwdesign/player.dart';
-import 'dart:io';
 
-import 'type.dart';
 import 'draw.dart';
+import 'led.dart';
+import 'move.dart';
+import '../player.dart';
 
 import 'dart:developer' as developer;
 
@@ -89,12 +89,14 @@ class ElemFile {
 
     // данные
     final draw = ElemDraw();
+    final leds = ElemLed();
     final move = ElemMove();
     void _clear() {
         _hidden = false;
         _name = '';
         _num = 0;
         draw.clear();
+        leds.clear();
         move.clear();
     }
 
@@ -127,6 +129,23 @@ class ElemFile {
                 (jdraw != null) && (
                     !(jdraw is List<dynamic>) ||
                     !draw.load(jdraw)
+                )
+            )
+            ok = false;
+        
+        final jleds = json['leds'];
+        if ((jleds is String) && (jleds != '')) {
+            final f = _all.firstWhere((f) => f.name == jleds, orElse: () => ElemFile.empty());
+            if (f.name == jleds)
+                leds.clone(f.leds);
+            else
+                ok = false;
+        }
+        else
+        if (
+                (jleds != null) && (
+                    !(jleds is List<dynamic>) ||
+                    !leds.load(jleds)
                 )
             )
             ok = false;
@@ -165,12 +184,11 @@ class ElemFile {
 
     // отрисовка
     void paint(Canvas canvas) {
-        draw.paint(
-            canvas,
-            move.val(ParType.x),
-            move.val(ParType.y),
-            move.val(ParType.r),
-        );
+        final x = move.val(ParType.x);
+        final y = move.val(ParType.y);
+        final r = move.val(ParType.r);
+        draw.paint(canvas, x, y, r);
+        leds.paint(canvas, x, y, r);
     }
 }
 

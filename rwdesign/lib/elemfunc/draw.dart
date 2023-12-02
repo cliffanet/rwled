@@ -12,16 +12,6 @@ double _convertRadiusToSigma(double radius) {
     return radius * 0.57735 + 0.5;
 }
 
-Offset? _xy(dynamic s, [String? prefix]) {
-    if (!(s is HashItem)) return null;
-    final p = prefix ?? '';
-    final x = jdouble(s, p+'x');
-    final y = jdouble(s, p+'y');
-    if ((x == null) && (y == null))
-        return null;
-    return Offset(x ?? 0, y ?? 0);
-}
-
 Offset? _size(dynamic s) {
     if (!(s is HashItem)) return null;
     final w = jdouble(s, 'width');
@@ -42,7 +32,7 @@ Path? _path(dynamic s) {
             ok = false;
             return;
         }
-        final pos = _xy(d);
+        final pos = jxy(d);
         if (pos == null) {
             ok = false;
             return;
@@ -51,7 +41,7 @@ Path? _path(dynamic s) {
             p.moveTo(pos.dx, pos.dy);
         }
         else {
-            final bez = _xy(d, 'qbezier');
+            final bez = jxy(d, 'qbezier');
             if (bez == null) {
                 p.lineTo(pos.dx, pos.dy);
             }
@@ -95,7 +85,7 @@ class ElemDraw {
                 return;
             }
             if (d['fig'] is String) {
-                final cen = _xy(d) ?? Offset(0, 0);
+                final cen = jxy(d) ?? Offset(0, 0);
                 final nob = jbool(d, 'noborder') ?? false;
 
                 switch (d['fig'] as String) {
@@ -122,7 +112,7 @@ class ElemDraw {
                     case 'rect':
                         final siz = _size(d);
                         if (siz == null) break;
-                        final rnd = _xy(d, 'round') ?? Offset(0, 0);
+                        final rnd = jxy(d, 'round') ?? Offset(0, 0);
                         final r = Rect.fromCenter(center: cen, width: siz.dx, height: siz.dy);
                         if ((rnd.dx == 0) && (rnd.dy == 0)) {
                             _data.add((e, c) => c.drawRect(r, pntF));
@@ -139,7 +129,7 @@ class ElemDraw {
                     
                     case 'circle':
                         final rad   = jdouble(d, 'radius') ?? 0;
-                        final radxy = _xy(d, 'radius') ?? Offset(0, 0);
+                        final radxy = jxy(d, 'radius') ?? Offset(0, 0);
                         if (rad > 0) {
                             _data.add((e, c) => c.drawCircle(cen, rad, pntF));
                             if (!nob)
