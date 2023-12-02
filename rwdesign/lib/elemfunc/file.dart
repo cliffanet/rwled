@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
+import 'package:rwdesign/light/light.dart';
 
 import 'draw.dart';
 import 'led.dart';
@@ -31,8 +32,10 @@ class ElemFile {
     ElemFile.empty() : _n = '';
 
     void _makewatch(File f) {
-        developer.log('(${n++}) canceled $logs (${_watch?.hashCode.toRadixString(16)})');
-        _watch?.cancel();
+        if (_watch != null) {
+            developer.log('(${n++}) canceled $logs (${_watch!.hashCode.toRadixString(16)})');
+            _watch!.cancel();
+        }
         
         _watch = f.watch().listen((event) {
             switch (event.type) {
@@ -87,10 +90,17 @@ class ElemFile {
     int _num = 0;
     int get num => _num;
 
+    int _tm = 0;
+    set tm(int tm) {
+        _tm = tm;
+        move.tm = tm;
+    }
+
     // данные
     final draw = ElemDraw();
     final leds = ElemLed();
     final move = ElemMove();
+    final lght = Light();
     void _clear() {
         _hidden = false;
         _name = '';
@@ -98,6 +108,7 @@ class ElemFile {
         draw.clear();
         leds.clear();
         move.clear();
+        lght.clear();
     }
 
     // данные - загрузка
@@ -166,6 +177,15 @@ class ElemFile {
                 )
             )
             ok = false;
+
+        final jlght = json['light'];
+        if (
+                (jlght != null) && (
+                    !(jlght is List<dynamic>) ||
+                    !lght.load(jlght)
+                )
+            )
+            ok = false;
         
         Player().max = ScenarioMaxLen();
 
@@ -174,10 +194,10 @@ class ElemFile {
     }
 
     // данные - сброс
-    void close() {
+    void close([bool noremove = false]) {
         developer.log('(${n++}) canceled on close $logs (${_watch.hashCode.toRadixString(16)})');
         _watch?.cancel();
-        _removeme();
+        if (!noremove) _removeme();
         _clear();
         ScenarioNotify.value++;
     }
@@ -189,6 +209,7 @@ class ElemFile {
         final r = move.val(ParType.r);
         draw.paint(canvas, x, y, r);
         leds.paint(canvas, x, y, r);
+        lght.paint(canvas, _tm);
     }
 }
 
@@ -204,11 +225,12 @@ void OpenScenarioDir() async {
     }
 
     _wdir?.cancel();
-    _all.forEach((e) { e.close(); });
+    _all.forEach((e) { e.close(true); });
     _all.clear();
 
     final d = Directory(dir);
-    final List<FileSystemEntity> entities = d.listSync().toList();
+    final List<FileSystemEntity> entities = d.listSync().toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
     final Iterable<File> files = entities.whereType<File>().where(
         (f) => _isjson(f)
     );
@@ -243,7 +265,7 @@ void OpenScenarioDir() async {
 }
 
 void ScenarioMove(int tm) {
-    _all.where((s) => !s.hidden).forEach((s) => s.move.tm = tm);
+    _all.where((s) => !s.hidden).forEach((s) => s.tm = tm);
 }
 
 void ScenarioPaint(Canvas canvas) {
