@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'type.dart';
 
-typedef DrawItem = Function (Canvas canvas);
+typedef DrawItem = Function (ElemDraw e, Canvas canvas);
 typedef DrawList = List<DrawItem>;
 
 double _convertRadiusToSigma(double radius) {
@@ -69,12 +69,16 @@ Path? _path(dynamic s) {
 }
 
 class ElemDraw {
+    int num = 0;
     final DrawList _data = [];
-    void clear() => _data.clear();
+    void clear() {
+        num = 0;
+        _data.clear();
+    }
     
     bool load(dynamic s) {
         if (!(s is List<dynamic>)) return false;
-        clear();
+        _data.clear();
 
         bool ok = true;
         final pntF = Paint()
@@ -95,21 +99,41 @@ class ElemDraw {
                 final nob = jbool(d, 'noborder') ?? false;
 
                 switch (d['fig'] as String) {
+                    case 'num':
+                        final fsize = jdouble(d, 'fontsize') ?? 12;
+                        final width = jdouble(d, 'width');
+                        _data.add((e, c) {
+                            // Перенос формирования TextPainter в рисовальщик
+                            // необходим для корректной работы this.num
+                            final text = TextPainter(
+                                text: TextSpan(
+                                    text: e.num.toString(),
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: fsize,
+                                    )
+                                ),
+                                textDirection: TextDirection.ltr
+                            );
+                            text.layout();
+                            text.paint(c, cen-Offset(text.width/2, text.height/2));
+                        });
+                        break;
                     case 'rect':
                         final siz = _size(d);
                         if (siz == null) break;
                         final rnd = _xy(d, 'round') ?? Offset(0, 0);
                         final r = Rect.fromCenter(center: cen, width: siz.dx, height: siz.dy);
                         if ((rnd.dx == 0) && (rnd.dy == 0)) {
-                            _data.add((c) => c.drawRect(r, pntF));
+                            _data.add((e, c) => c.drawRect(r, pntF));
                             if (!nob)
-                                _data.add((c) => c.drawRect(r, pntB));
+                                _data.add((e, c) => c.drawRect(r, pntB));
                         }
                         else {
                             final rr = RRect.fromRectXY(r, rnd.dx, rnd.dy);
-                            _data.add((c) => c.drawRRect(rr, pntF));
+                            _data.add((e, c) => c.drawRRect(rr, pntF));
                             if (!nob)
-                                _data.add((c) => c.drawRRect(rr, pntB));
+                                _data.add((e, c) => c.drawRRect(rr, pntB));
                         }
                         break;
                     
@@ -117,25 +141,25 @@ class ElemDraw {
                         final rad   = jdouble(d, 'radius') ?? 0;
                         final radxy = _xy(d, 'radius') ?? Offset(0, 0);
                         if (rad > 0) {
-                            _data.add((c) => c.drawCircle(cen, rad, pntF));
+                            _data.add((e, c) => c.drawCircle(cen, rad, pntF));
                             if (!nob)
-                                _data.add((c) => c.drawCircle(cen, rad, pntB));
+                                _data.add((e, c) => c.drawCircle(cen, rad, pntB));
                         }
                         else
                         if ((radxy.dx > 0) && (radxy.dy > 0)) {
                             final r = Rect.fromCenter(center: cen, width: radxy.dx, height: radxy.dy);
-                            _data.add((c) => c.drawOval(r, pntF));
+                            _data.add((e, c) => c.drawOval(r, pntF));
                             if (!nob)
-                                _data.add((c) => c.drawOval(r, pntB));
+                                _data.add((e, c) => c.drawOval(r, pntB));
                         }
                         break;
                     
                     case 'path':
                         final path = _path(d['path']);
                         if (path != null) {
-                            _data.add((c) => c.drawPath(path, pntF));
+                            _data.add((e, c) => c.drawPath(path, pntF));
                             if (!nob)
-                                _data.add((c) => c.drawPath(path, pntB));
+                                _data.add((e, c) => c.drawPath(path, pntB));
                         }
                         break;
 
@@ -145,6 +169,11 @@ class ElemDraw {
         });
 
         return ok;
+    }
+
+    void clone(ElemDraw orig) {
+        _data.clear();
+        _data.addAll(orig._data);
     }
 
     void paint(Canvas canvas, double x, double y, double r) {
@@ -158,7 +187,7 @@ class ElemDraw {
             x * cos(-ang) - y * sin(-ang),
             x * sin(-ang) + y * cos(-ang)
         );
-        _data.forEach((d) => d(canvas));
+        _data.forEach((d) => d(this, canvas));
         canvas.restore();
     }
 }

@@ -28,6 +28,7 @@ class ElemFile {
         _makewatch(f);
         load(f);
     }
+    ElemFile.empty() : _n = '';
 
     void _makewatch(File f) {
         developer.log('(${n++}) canceled $logs (${_watch?.hashCode.toRadixString(16)})');
@@ -77,11 +78,22 @@ class ElemFile {
     bool operator ==(other) => 
         (other is ElemFile) &&
         (other._n == this._n);
+    
+    // параметры
+    bool _hidden = false;
+    bool get hidden => _hidden;
+    String _name = '';
+    String get name => _name;
+    int _num = 0;
+    int get num => _num;
 
     // данные
     final draw = ElemDraw();
     final move = ElemMove();
     void _clear() {
+        _hidden = false;
+        _name = '';
+        _num = 0;
         draw.clear();
         move.clear();
     }
@@ -92,8 +104,25 @@ class ElemFile {
         final json = jsonDecode(await f.readAsString());
         if (!(json is Map<String, dynamic>)) return false;
         bool ok = true;
+
+        if (json['hidden'] is bool)
+            _hidden = json['hidden'];
+        if (json['name'] is String)
+            _name = json['name'];
+        if (json['num'] is int) {
+            _num = json['num'];
+            draw.num = _num;
+        }
         
         final jdraw = json['draw'];
+        if ((jdraw is String) && (jdraw != '')) {
+            final f = _all.firstWhere((f) => f.name == jdraw, orElse: () => ElemFile.empty());
+            if (f.name == jdraw)
+                draw.clone(f.draw);
+            else
+                ok = false;
+        }
+        else
         if (
                 (jdraw != null) && (
                     !(jdraw is List<dynamic>) ||
@@ -103,6 +132,14 @@ class ElemFile {
             ok = false;
 
         final jmove = json['move'];
+        if ((jmove is String) && (jmove != '')) {
+            final f = _all.firstWhere((f) => f.name == jmove, orElse: () => ElemFile.empty());
+            if (f.name == jmove)
+                move.clone(f.move);
+            else
+                ok = false;
+        }
+        else
         if (
                 (jmove != null) && (
                     !(jmove is List<dynamic>) ||
@@ -188,16 +225,18 @@ void OpenScenarioDir() async {
 }
 
 void ScenarioMove(int tm) {
-    _all.forEach((s) => s.move.tm = tm);
+    _all.where((s) => !s.hidden).forEach((s) => s.move.tm = tm);
 }
 
 void ScenarioPaint(Canvas canvas) {
-    _all.forEach((s) => s.paint(canvas));
+    _all.where((s) => !s.hidden).forEach((s) => s.paint(canvas));
 }
 
 int ScenarioMaxLen() {
     int max = 0;
-    _all.forEach((s) { if (max < s.move.tmlen) max = s.move.tmlen; });
+    _all.where((s) => !s.hidden).forEach(
+        (s) { if (max < s.move.tmlen) max = s.move.tmlen; }
+    );
     return max;
 }
 

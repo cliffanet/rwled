@@ -135,4 +135,9 @@ class ElemMove {
 
         return ok;
     }
+
+    void clone(ElemMove orig) {
+        clear();
+        _data.addAll(orig._data);
+    }
 }
