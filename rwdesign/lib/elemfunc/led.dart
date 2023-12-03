@@ -9,12 +9,8 @@ class LedItem {
     final double y;
     LedItem(this.x, this.y);
 
-    Offset calc(double nx, double ny, double anr/* тут в радианах */) { 
-        return Offset(
-            nx + x * cos(anr) - y * sin(anr),
-            ny + x * sin(anr) + y * cos(anr)
-        );
-    }
+    Offset calc(double nx, double ny, double anr/* тут в радианах */) =>
+        Offset(nx, ny) + rotate(x, y, anr);
 }
 
 class ElemLed {

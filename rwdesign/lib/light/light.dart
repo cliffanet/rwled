@@ -1,9 +1,9 @@
 
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:rwdesign/elemfunc/type.dart';
-import 'package:rwdesign/light/circle.dart';
+
+import '../elemfunc/type.dart';
+import 'circle.dart';
+import 'sector.dart';
 
 class LightItem {
     bool valid = false;
@@ -60,6 +60,8 @@ class Light {
             final l =
                 fig == 'circle' ?
                     LightCircle(d) :
+                fig == 'sector' ?
+                    LightSector(d) :
                     LightItem.empty();
             if (!l.valid) {
                 ok = false;

@@ -10,9 +10,9 @@ class LParamCircle {
     final Color  col;
 
     LParamCircle(HashItem d, [LParamCircle? beg]) :
-        cen = jxy(d)            ?? (beg != null ? beg.cen   : Offset.zero),
-        r   = jdouble(d, 'r')   ?? (beg != null ? beg.r     : 100),
-        col = jcolor(d)         ?? (beg != null ? beg.col   : Colors.black);
+        cen = jxy(d)            ?? beg?.cen ?? Offset.zero,
+        r   = jdouble(d, 'r')   ?? beg?.r   ?? 100,
+        col = jcolor(d)         ?? beg?.col ?? Colors.black;
     
     LParamCircle.zero() :
         cen = Offset.zero,

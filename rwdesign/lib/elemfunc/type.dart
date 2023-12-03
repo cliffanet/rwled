@@ -1,5 +1,6 @@
 
 
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -56,5 +57,20 @@ Color coldiff(Color beg, Color end, double k) {
         ((end.green - beg.green)    * k + beg.green ).round(),
         ((end.blue  - beg.blue)     * k + beg.blue  ).round(),
         (end.opacity- beg.opacity)  * k + beg.opacity
+    );
+}
+
+Offset posdiff(Offset beg, Offset end, double k) {
+    return (end - beg) * k + beg;
+}
+
+double dbldiff(double beg, double end, double k) {
+    return (end - beg) * k + beg;
+}
+
+Offset rotate(double x, double y, double anr) {
+    return Offset(
+            x * cos(anr) - y * sin(anr),
+            x * sin(anr) + y * cos(anr)
     );
 }
