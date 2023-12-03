@@ -21,13 +21,16 @@ class ElemFile {
     StreamSubscription<FileSystemEvent>? _watch;
     int get hashCode => _n.hashCode;
 
-    ElemFile(String fname) : this.byFile(File(fname));
-    ElemFile.byFile(File f) :
+    ElemFile._byFile(File f) :
         _n = f.absolute.path
     {
         developer.log('(${n++}) Opening$logs');
         _makewatch(f);
-        load(f);
+    }
+    static Future<ElemFile> byFile(File f) async {
+        final e = ElemFile._byFile(f);
+        await e.load(f);
+        return e;
     }
     ElemFile.empty() : _n = '';
 
@@ -236,12 +239,14 @@ void OpenScenarioDir() async {
     );
     developer.log('files: $files');
 
-    void open(File f) {
-        final o = ElemFile.byFile(f);
+    void open(File f) async {
+        final o = await ElemFile.byFile(f);
+        if (!o.hidden)
+            o.tm = Player().tm;
         final e = _all.lookup(o);
         if (e != null) {
             e.close();
-            _all.remove(e!);
+            _all.remove(e);
             developer.log('(${n++}) removed other my by open ${o.logs}');
         }
         else 
