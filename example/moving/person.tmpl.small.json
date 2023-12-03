@@ -1,0 +1,127 @@
+{
+    "name": "person-small",
+    "hidden": true,
+    "draw": [
+        {
+            "fig": "rect",
+            "y":    22,
+            "width": 20, "height": 16
+        },
+        {
+            "fig": "path",
+            "path": [
+                { "x": 10,  "y": -13 },
+                { "x": 15,  "y": -15,   "qbezierx": 20, "qbeziery": -33 },
+                { "x": 25,  "y": -37,   "qbezierx": 30, "qbeziery": -33 },
+                { "x": 28,  "y": -25,   "qbezierx": 17, "qbeziery": -13 },
+                { "x": 13,  "y": -10,   "qbezierx": 13, "qbeziery": 13 },
+                { "x": -13, "y": 13 },
+                { "x": -13, "y": -10,   "qbezierx": -17,"qbeziery": -13 },
+                { "x": -28, "y": -25,   "qbezierx": -30,"qbeziery": -33 },
+                { "x": -25, "y": -37,   "qbezierx": -20,"qbeziery": -33 },
+                { "x": -15, "y": -15,   "qbezierx": -10,"qbeziery": -13 }
+            ]
+        },
+        {
+            "fig": "rect",
+            "width": 20, "height": 26,
+            "roundx": 3, "roundy": 3
+        },
+        {
+            "fig": "circle",
+            "y": -23,
+            "radius": 10
+        },
+        {
+            "fig": "circle",
+            "x": -12, "y": 32,
+            "radiusx": 22, "radiusy": 36
+        },
+        {
+            "fig": "circle",
+            "x":  12, "y": 32,
+            "radiusx": 22, "radiusy": 36
+        },
+        {
+            "fig": "num",
+            "fontsize": 14
+        }
+    ],
+
+    "leds": [
+        {
+            "x": -11,
+            "y": 10,
+            "ang": -5,
+            "length": 20
+        },
+        {
+            "x": -16,
+            "y": -15,
+            "ang": -30,
+            "length": 20
+        },
+        {
+            "x": -26,
+            "y": -35,
+            "ang":  45,
+            "count": 15,
+            "length": 15
+        },
+        {
+            "x":  11,
+            "y": 10,
+            "ang":  5,
+            "length": 20
+        },
+        {
+            "x":  16,
+            "y": -15,
+            "ang":  30,
+            "length": 20
+        },
+        {
+            "x":  26,
+            "y": -35,
+            "ang": -45,
+            "count": 15,
+            "length": 15
+        },
+        {
+            "x": -11,
+            "y": 25,
+            "ang": -175,
+            "length": 15
+        },
+        {
+            "x": -13,
+            "y":  45,
+            "ang": -160,
+            "length": 15
+        },
+        {
+            "x": -9,
+            "y":  60,
+            "ang": 20,
+            "length": 15
+        },
+        {
+            "x": 11,
+            "y": 25,
+            "ang": 175,
+            "length": 15
+        },
+        {
+            "x": 13,
+            "y":  45,
+            "ang": 160,
+            "length": 15
+        },
+        {
+            "x": 9,
+            "y":  60,
+            "ang": -20,
+            "length": 15
+        }
+    ]
+}

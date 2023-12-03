@@ -1,0 +1,65 @@
+{
+    "light":[
+        {
+            "tm": 6000,
+            "fig": "circle",
+            "beg": { "x": 350, "y": 150, "r": 250, "color": "FFAAAAAA" }
+        },
+        {
+            "start": 3000,
+            "tm": 3000,
+            "fig": "circle",
+            "beg": { "x": 350, "y": 150, "r": 0, "color": "FF0000" },
+            "end": { "r": 250 },
+            "wait": 1000
+        },
+        {
+            "start": 4000,
+            "tm": 3000,
+            "fig": "circle",
+            "beg": { "x": 350, "y": 150, "r": 0, "color": "FFFFFF" },
+            "end": { "r": 250 },
+            "wait": 3500
+        },
+        {
+            "start": 6000,
+            "tm": 4500,
+            "fig": "sector",
+            "beg": { "x": 350, "y": 150, "r": 250, "color": "00FF00", "ang1": 0, "ang2": 1 },
+            "end": { "ang2": 360 },
+            "wait": 5000
+        },
+        {
+            "start": 10500,
+            "tm": 5000,
+            "fig": "sector",
+            "beg": { "x": 350, "y": 150, "r": 250, "color": "0000FF", "ang1": 0, "ang2": 1 },
+            "end": { "ang2": -360 },
+            "wait": 5000
+        },
+        {
+            "start": 15000,
+            "tm": 5000,
+            "fig": "circle",
+            "beg": { "x": 350, "y": 150, "r": 0, "color": "FF0000" },
+            "end": { "r": 250 },
+            "wait": 5000
+        },
+        {
+            "start": 20000,
+            "tm": 2000,
+            "fig": "circle",
+            "beg": { "x": 350, "y": 150, "r": 0, "color": "00FF00" },
+            "end": { "r": 250 },
+            "wait": 3000
+        },
+        {
+            "start": 21000,
+            "tm": 2000,
+            "fig": "circle",
+            "beg": { "x": 350, "y": 150, "r": 0, "color": "0000FF" },
+            "end": { "r": 250 },
+            "wait": 3000
+        }
+    ]
+}
