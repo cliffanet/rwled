@@ -2,7 +2,13 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:rwdesign/elemfunc/file.dart';
 import 'package:rwdesign/elemfunc/type.dart';
+import 'package:rwdesign/player.dart';
+
+double _convertRadiusToSigma(double radius) {
+    return radius * 0.57735 + 0.5;
+}
 
 class LedItem {
     final double x;
@@ -57,13 +63,30 @@ class ElemLed {
         _data.addAll(orig._data);
     }
 
-    void paint(Canvas canvas, double x, double y, double r) {
+    void paint(Canvas canvas, double x, double y, double r, [bool colored = false]) {
         final anr = r*pi/180;
-        final p = Paint()
-            ..color = Colors.blue
-            ..style = PaintingStyle.fill;
         canvas.save();
-        _data.forEach((d) => canvas.drawCircle(d.calc(x, y, anr), 1, p));
+        if (colored) {
+            final tm = Player().tm;
+            final p = Paint()
+                ..style = PaintingStyle.fill
+                ..maskFilter = MaskFilter.blur(BlurStyle.normal, _convertRadiusToSigma(20));
+            _data.forEach((d) {
+                final pos = d.calc(x, y, anr);
+                final col = ScenarioLed(pos.dx, pos.dy, tm);
+                if (col == null) return;
+                p.color = col;
+                canvas.drawCircle(pos, 6, p);
+            });
+        }
+        else {
+            final p = Paint()
+                ..color = Colors.blue
+                ..style = PaintingStyle.fill;
+            _data.forEach(
+                (d) => canvas.drawCircle(d.calc(x, y, anr), 1, p)
+            );
+        }
         canvas.restore();
     }
 }

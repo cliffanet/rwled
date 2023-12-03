@@ -4,6 +4,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:rwdesign/elemfunc/file.dart';
 
+enum LightMode {
+    Hidden, Figure, Layer, Led
+}
+
 class PlayerElement {
     final String title;
     PlayerElement (this.title);
@@ -97,5 +101,25 @@ class Player {
             stop();
         else
             play();
+    }
+
+    LightMode _lmode = LightMode.Figure;
+    LightMode get lmode => _lmode;
+    void lmodetgl() {
+        switch (_lmode) {
+            case LightMode.Hidden:
+                _lmode = LightMode.Figure;
+                break;
+            case LightMode.Figure:
+                _lmode = LightMode.Layer;
+                break;
+            case LightMode.Layer:
+                _lmode = LightMode.Led;
+                break;
+            case LightMode.Led:
+            default:
+                _lmode = LightMode.Hidden;
+        }
+        notify.value++;
     }
 }

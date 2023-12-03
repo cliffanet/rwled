@@ -1,4 +1,6 @@
 
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../elemfunc/type.dart';
@@ -38,8 +40,19 @@ class LightCircle extends LightItem {
         final p = Paint()
             ..color = coldiff(beg.col, end.col, k)
             ..style = PaintingStyle.fill;
-        final cen = (end.cen-beg.cen)*k+beg.cen;
-        final r   = (end.r  -beg.r)  *k+beg.r;
+        final cen = posdiff(beg.cen,   end.cen, k);
+        final r   = dbldiff(beg.r,     end.r,   k);
         canvas.drawCircle(cen, r, p);
+    }
+    
+    @override
+    Color? color(double x, double y, int tm) {
+        final k = tmk(tm);
+        if (k < 0) return null;
+
+        final cen = posdiff(beg.cen,   end.cen, k);
+        final r   = dbldiff(beg.r,     end.r,   k);
+        final r1 = sqrt(pow(cen.dx-x, 2) + pow(cen.dy-y, 2));
+        return r1 <= r ? coldiff(beg.col, end.col, k) : null;
     }
 }

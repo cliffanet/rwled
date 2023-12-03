@@ -210,9 +210,18 @@ class ElemFile {
         final x = move.val(ParType.x);
         final y = move.val(ParType.y);
         final r = move.val(ParType.r);
+        final m = Player().lmode;
         draw.paint(canvas, x, y, r);
-        leds.paint(canvas, x, y, r);
-        lght.paint(canvas, _tm);
+        if (m != LightMode.Hidden) {
+            
+            if (m == LightMode.Led) {
+                leds.paint(canvas, x, y, r, true);
+            }
+            else {
+                leds.paint(canvas, x, y, r);
+                lght.paint(canvas, _tm);
+            }
+        }
     }
 }
 
@@ -283,6 +292,15 @@ int ScenarioMaxLen() {
         (s) { if (max < s.move.tmlen) max = s.move.tmlen; }
     );
     return max;
+}
+
+Color? ScenarioLed(double x, double y, int tm) {
+    for (final s in _all.toList().reversed) {
+        final col = s.lght.color(x, y, tm);
+        if (col != null)
+            return col;
+    }
+    return null;
 }
 
 ValueNotifier<int> ScenarioNotify = ValueNotifier(0);

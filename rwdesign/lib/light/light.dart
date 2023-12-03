@@ -32,6 +32,8 @@ class LightItem {
     bool intm(int tm) => valid && tmk(tm) >= 0;
 
     void paint(Canvas canvas, int tm) {}
+
+    Color? color(double x, double y, int tm) => null;
 }
 
 class Light {
@@ -79,5 +81,14 @@ class Light {
         canvas.save();
         _data.forEach((l) => l.paint(canvas, tm));
         canvas.restore();
+    }
+
+    Color? color(double x, double y, int tm) {
+        for (final l in _data.reversed) {
+            final col = l.color(x, y, tm);
+            if (col != null)
+                return col;
+        }
+        return null;
     }
 }

@@ -39,6 +39,22 @@ Widget PlaceCtrl() {
                         onChangeStart: (v) => p.stop(),
                     ),
                 ),
+                FloatingActionButton(
+                    heroTag: 'lmode',
+                    onPressed: p.lmodetgl,
+                    child: Icon(
+                        p.lmode == LightMode.Hidden ?
+                            Icons.hide_image :
+                        p.lmode == LightMode.Figure ?
+                            Icons.pentagon :
+                        p.lmode == LightMode.Layer ?
+                            Icons.layers :
+                        p.lmode == LightMode.Led ?
+                            Icons.light_mode :
+                            Icons.device_unknown
+                    ),
+                    tooltip: p.lmode.toString()
+                ),
             ]);
         }
     );
