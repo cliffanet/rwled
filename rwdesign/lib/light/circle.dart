@@ -27,7 +27,7 @@ class LightCircle extends LightItem {
     
     LightCircle(HashItem d) : super(d) {
         beg = LParamCircle(d['beg']);
-        end = LParamCircle(d['end'], beg);
+        end = LParamCircle(d['end'] ?? d['beg'], beg);
     }
 
     @override

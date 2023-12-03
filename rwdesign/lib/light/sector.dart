@@ -35,7 +35,7 @@ class LightSector extends LightItem {
     
     LightSector(HashItem d) : super(d) {
         beg = LParamSector(d['beg']);
-        end = LParamSector(d['end'], beg);
+        end = LParamSector(d['end'] ?? d['beg'], beg);
     }
 
     @override

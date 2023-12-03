@@ -6,29 +6,30 @@ import 'circle.dart';
 import 'sector.dart';
 
 class LightItem {
-    bool valid = false;
-    int tmbeg = 0, tmend = 0; 
+    bool get valid => (tmfin > tmbeg) && (tmfin >= tmend) && (tmend >= tmbeg);
+    final int tmbeg;
+    int tmend = 0, tmfin = 0;
 
-    LightItem(HashItem d) {
-        final beg = jint(d, 'start');
+    LightItem(HashItem d) :
+        tmbeg = jint(d, 'start') ?? 0
+    {
         final tm  = jint(d, 'tm') ?? 0;
-        if ((beg == null) || (tm <= 0))
-            return;
-        
-        tmbeg = beg;
-        tmend = beg + tm;
-
-        valid = true;
+        if (tm > 0)
+            tmend = tmbeg + tm;
+        tmfin = tmend + (jint(d, 'wait') ?? 0);
     }
 
-    LightItem.empty();
+    LightItem.empty() :
+        tmbeg = 0;
 
     double tmk(int tm) {
-        if ((tm < tmbeg) || (tm >= tmend))
+        if ((tm < tmbeg) || (tm >= tmfin))
             return -1;
+        if (tm >= tmend)
+            return 1;
         return (tm-tmbeg) / (tmend-tmbeg);
     }
-    bool intm(int tm) => tmk(tm) >= 0;
+    bool intm(int tm) => valid && tmk(tm) >= 0;
 
     void paint(Canvas canvas, int tm) {}
 }
