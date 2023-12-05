@@ -82,6 +82,13 @@ class LightSector extends LightItem {
         if (k < 0) return null;
 
         final cen = posdiff(beg.cen,   end.cen, k);
+        if ((x == cen.dx) && (y == cen.dy))
+            // точку в центре нашей окружности не рисуем,
+            // т.к. мы не можем определить её угол (относительно центра),
+            // а значит, не можем определить и цвет, если color1 != color2,
+            // попытки матемаческих вычислений, дают нам NaN и исключение
+            return null;
+
         final pos = Offset(x, y) - cen;
         final r   = dbldiff(beg.r,     end.r,   k);
         final r1 = sqrt(pos.dx*pos.dx + pos.dy*pos.dy);

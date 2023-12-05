@@ -219,7 +219,8 @@ class ElemFile {
             }
             else {
                 leds.paint(canvas, x, y, r);
-                lght.paint(canvas, _tm);
+                if (m == LightMode.Figure)
+                    lght.paint(canvas, _tm);
             }
         }
     }
@@ -282,10 +283,6 @@ void ScenarioMove(int tm) {
     _all.where((s) => !s.hidden).forEach((s) => s.tm = tm);
 }
 
-void ScenarioPaint(Canvas canvas) {
-    _all.where((s) => !s.hidden).forEach((s) => s.paint(canvas));
-}
-
 int ScenarioMaxLen() {
     int max = 0;
     _all.where((s) => !s.hidden).forEach(
@@ -304,3 +301,43 @@ Color? ScenarioLed(double x, double y, int tm) {
 }
 
 ValueNotifier<int> ScenarioNotify = ValueNotifier(0);
+
+
+double _convertRadiusToSigma(double radius) {
+    return radius * 0.57735 + 0.5;
+}
+class ScenarioPainter extends CustomPainter {
+    ScenarioPainter();
+
+    @override
+    void paint(Canvas canvas, Size size) {
+        _all
+            .where((s) => !s.hidden)
+            .forEach((s) => s.paint(canvas));
+        
+        if (Player().lmode == LightMode.Layer) {
+            canvas.save();
+            final lghtall = _all.toList().reversed;
+            final tm = Player().tm;
+            final p = Paint()
+                ..style = PaintingStyle.fill
+                ..maskFilter = MaskFilter.blur(BlurStyle.normal, _convertRadiusToSigma(20));
+
+            for (double x = 0; x < size.width; x += 10)
+                for (double y = 0; y < size.height; y += 10)
+                    for (final s in lghtall) {
+                        final col = s.lght.color(x, y, tm);
+                        if (col == null)
+                            continue;
+                        p.color = col;
+                        canvas.drawCircle(Offset(x, y), 5, p);
+                        break;
+                    }
+            
+            canvas.restore();
+        }
+    }
+
+    @override
+    bool shouldRepaint(ScenarioPainter oldDelegate) => true;
+}

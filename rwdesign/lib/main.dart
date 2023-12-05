@@ -1,10 +1,6 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:rwdesign/elemfunc/file.dart';
-import 'package:rwdesign/player.dart';
 import 'package:rwdesign/view/ctrl.dart';
-import 'package:rwdesign/painter.dart';
 
 void main() {
     runApp(const MaterialApp(
@@ -28,7 +24,7 @@ class DesignApp extends StatelessWidget {
                     valueListenable: ScenarioNotify,
                     builder: (context, value, widget) {
                         return CustomPaint(
-                            painter: PlacePainter(),
+                            painter: ScenarioPainter(),
                             size: Size.infinite,
                         );
                     }
