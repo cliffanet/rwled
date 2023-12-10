@@ -71,13 +71,21 @@ class Player {
         _play = Timer(
             Duration(milliseconds: 8),
             () {
-                _tm += 10;
-                if (_tm > _max)
-                    _tm = _max;
-                if (_tm < _max)
-                    _pnxt();
-                else
-                    stop();
+                if (_tm >= _max) {
+                    final loop = ScenarioLoop();
+                    if ((loop >= 0) && (loop < _max))
+                        _tm = loop;
+                    else {
+                        stop();
+                        return;
+                    }
+                }
+                else {
+                    _tm += 10;
+                    if (_tm > _max)
+                        _tm = _max;
+                }
+                _pnxt();
                 ScenarioMove(_tm);
                 notify.value++;
             }

@@ -100,6 +100,8 @@ class ElemFile {
     }
 
     // данные
+    int  _loop = -1;
+    int get loop => _loop;
     final draw = ElemDraw();
     final leds = ElemLed();
     final move = ElemMove();
@@ -108,6 +110,7 @@ class ElemFile {
         _hidden = false;
         _name = '';
         _num = 0;
+        _loop = -1;
         draw.clear();
         leds.clear();
         move.clear();
@@ -129,6 +132,9 @@ class ElemFile {
             _num = json['num'];
             draw.num = _num;
         }
+
+        if (json['loop'] is int)
+            _loop = json['loop'];
         
         final jdraw = json['draw'];
         if ((jdraw is String) && (jdraw != '')) {
@@ -289,6 +295,14 @@ int ScenarioMaxLen() {
         (s) { if (max < s.move.tmlen) max = s.move.tmlen; }
     );
     return max;
+}
+
+int ScenarioLoop() {
+    int l = -1;
+    _all.where((s) => !s.hidden).forEach(
+        (s) { if (l < s.loop) l = s.loop; }
+    );
+    return l;
 }
 
 Color? ScenarioLed(double x, double y, int tm) {
