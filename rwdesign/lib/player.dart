@@ -1,8 +1,11 @@
 
 
 import 'dart:async';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:rwdesign/elemfunc/file.dart';
+import 'package:rwdesign/elemfunc/move.dart';
 
 enum LightMode {
     Hidden, Figure, Layer, Led
@@ -130,4 +133,58 @@ class Player {
         }
         notify.value++;
     }
+}
+
+Future<bool> PlayerSave() async {
+    String? dir = await FilePicker.platform.getDirectoryPath();
+    if (dir == null)
+        return false;
+
+    for (final s in ScenarioLed()) {
+        final f = File(dir + '/p' + s.num.toString().padLeft(3,'0') + '.led');
+        final txt = await f.openWrite();
+
+        txt.writeln("LEDS:" + s.num.toString().padLeft(3,'0'));
+
+        Map<int,List<int>> val = {};
+
+        for (int tm = 0; tm <= s.move.tmlen; tm += 10) {
+            s.move.tm = tm;
+            final chanall = s.leds.info(tm,
+                s.move.val(ParType.x),
+                s.move.val(ParType.y),
+                s.move.val(ParType.r)
+            );
+            
+            for (final ch in chanall) {
+                if (!val.containsKey(ch.chan))
+                    val[ch.chan] = [];
+                final v = val[ch.chan] ?? [];
+                final out = <String>[];
+
+                for (final l in ch.list) {
+                    while (v.length <= l.num) v.add(0);
+                    if (v[l.num] == l.col.value) continue;
+                    v[l.num] = l.col.value;
+                    out.add("n${l.num}=${l.col.value.toRadixString(16).padLeft(8,'0')}");
+                }
+                if (out.isEmpty) continue;
+
+                txt.write("tm${tm},ch${ch.chan}:");
+                txt.write(out.join(';'));
+                txt.writeln(";");
+            }
+        }
+
+        final max = Player().max;
+        final loop = ScenarioLoop();
+        if ((loop >= 0) && (loop < max))
+            txt.writeln("LOOP:$loop,$max");
+
+        txt.writeln("END.");
+
+        await txt.close();
+    }
+
+    return true;
 }

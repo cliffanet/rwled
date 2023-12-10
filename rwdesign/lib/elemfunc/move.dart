@@ -139,5 +139,12 @@ class ElemMove {
     void clone(ElemMove orig) {
         clear();
         _data.addAll(orig._data);
+        _tmlen = orig._tmlen;
+    }
+
+    ElemMove copy() {
+        ElemMove c = ElemMove();
+        c.clone(this);
+        return c;
     }
 }

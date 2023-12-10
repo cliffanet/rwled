@@ -305,13 +305,26 @@ int ScenarioLoop() {
     return l;
 }
 
-Color? ScenarioLed(double x, double y, int tm) {
+Color? ScenarioLght(double x, double y, int tm) {
     for (final s in _all.toList().reversed) {
         final col = s.lght.color(x, y, tm);
         if (col != null)
             return col;
     }
     return null;
+}
+
+class PersonLed {
+    final int num;
+    final ElemMove  move;
+    final ElemLed   leds;
+    PersonLed(this.num, this.move, this.leds);
+}
+List<PersonLed> ScenarioLed() {
+    return _all
+        .where((s) => !s.hidden && s.leds.isNotEmpty)
+        .map((d) => PersonLed(d.num, d.move.copy(), d.leds))
+        .toList();
 }
 
 ValueNotifier<int> ScenarioNotify = ValueNotifier(0);

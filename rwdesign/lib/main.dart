@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rwdesign/elemfunc/file.dart';
+import 'package:rwdesign/player.dart';
 import 'package:rwdesign/view/ctrl.dart';
 
 void main() {
@@ -10,7 +11,7 @@ void main() {
     ));
 }
 
-enum MenuCode { Open }
+enum MenuCode { Open, Save }
 
 class DesignApp extends StatelessWidget {
     const DesignApp({super.key});
@@ -39,6 +40,9 @@ class DesignApp extends StatelessWidget {
                                 case MenuCode.Open:
                                     OpenScenarioDir();
                                     break;
+                                case MenuCode.Save:
+                                    PlayerSave();
+                                    break;
                             };
                         },
                         itemBuilder: (context) {
@@ -50,6 +54,16 @@ class DesignApp extends StatelessWidget {
                                             Icon(Icons.folder, color: Colors.black),
                                             SizedBox(width: 8),
                                             Text('Открыть сценарий'),
+                                        ]
+                                    ),
+                                ),
+                                PopupMenuItem(
+                                    value: MenuCode.Save,
+                                    child: Row(
+                                        children: const [
+                                            Icon(Icons.save, color: Colors.black),
+                                            SizedBox(width: 8),
+                                            Text('Сохранить led-data'),
                                         ]
                                     ),
                                 ),
