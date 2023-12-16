@@ -144,7 +144,7 @@ Future<bool> PlayerSave() async {
         final f = File(dir + '/p' + s.num.toString().padLeft(3,'0') + '.led');
         final txt = await f.openWrite();
 
-        txt.writeln("LEDS:" + s.num.toString().padLeft(3,'0'));
+        txt.writeln("LEDS=" + s.num.toString().padLeft(3,'0'));
 
         Map<int,List<int>> val = {};
 
@@ -155,31 +155,36 @@ Future<bool> PlayerSave() async {
                 s.move.val(ParType.y),
                 s.move.val(ParType.r)
             );
+            bool tmprn = false;
             
             for (final ch in chanall) {
                 if (!val.containsKey(ch.chan))
                     val[ch.chan] = [];
                 final v = val[ch.chan] ?? [];
-                final out = <String>[];
+                bool chprn = false;
 
                 for (final l in ch.list) {
                     while (v.length <= l.num) v.add(0);
                     if (v[l.num] == l.col.value) continue;
                     v[l.num] = l.col.value;
-                    out.add("n${l.num}=${l.col.value.toRadixString(16).padLeft(8,'0')}");
-                }
-                if (out.isEmpty) continue;
 
-                txt.write("tm${tm},ch${ch.chan}:");
-                txt.write(out.join(';'));
-                txt.writeln(";");
+                    if (!tmprn) {
+                        txt.writeln("tm=${tm}");
+                        tmprn = true;
+                    }
+                    if (!chprn) {
+                        txt.writeln("ch=${ch.chan}");
+                        chprn = true;
+                    }
+                    txt.writeln("led=${l.num},${l.col.value.toRadixString(16).padLeft(8,'0')}");
+                }
             }
         }
 
         final max = Player().max;
         final loop = ScenarioLoop();
         if ((loop >= 0) && (loop < max))
-            txt.writeln("LOOP:$loop,$max");
+            txt.writeln("LOOP=$loop,$max");
 
         txt.writeln("END.");
 
