@@ -3,14 +3,17 @@
 #include "src/log.h"
 #include "src/clock.h"
 #include "src/worker.h"
-#include "src/dataread.h"
+#include "src/console.h"
+#include "src/wifi.h"
 
 void setup() {
     //Serial.setRxBufferSize(4096);
     Serial.begin(115200);
     initConsoleReader(Serial);
-
+    
     CONSOLE("init finish");
+
+    wifiStart();
 }
 
 void loop() {

@@ -2,11 +2,11 @@
     Data reader
 */
 
-#ifndef _dataread_H
-#define _dataread_H
+#ifndef _console_H
+#define _console_H
 
 #include "Stream.h"
 
 void initConsoleReader(Stream &fh);
 
-#endif // _dataread_H
+#endif // _console_H
