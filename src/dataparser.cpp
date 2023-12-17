@@ -117,7 +117,7 @@ bool DataParser::addstr(const char *s) {
                 }
                 _state = END;
                 CONSOLE("END whithout LOOP");
-                return lsadd(LSEND);
+                return lsadd(LSEND) && lsfin();
             }
             else {
                 CONSOLE("ERR: param on DATA: %s", p);
@@ -133,7 +133,7 @@ bool DataParser::addstr(const char *s) {
                 }
                 _state = END;
                 CONSOLE("END");
-                return lsadd(LSEND);
+                return lsadd(LSEND) && lsfin();
             }
             else {
                 CONSOLE("ERR: param on FIN: %s", p);

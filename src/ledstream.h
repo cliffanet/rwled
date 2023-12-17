@@ -11,6 +11,7 @@
 #define LSHDR   '#'
 
 typedef enum {
+    LSFAIL = -1,
     LSUNKNOWN,
     LSSTART,
     LSTIME,
@@ -38,6 +39,14 @@ typedef struct __attribute__((__packed__)) {
 } ls_loop_t;
 
 bool lsbegin();
+
+bool lsopened();
+ls_type_t lsget(uint8_t *data, size_t sz);
+template <typename T>
+ls_type_t lsget(T &data) {
+    return lsget(reinterpret_cast<uint8_t *>(&data), sizeof(T));
+}
+
 
 bool lstmp();
 bool lsadd(ls_type_t type, const uint8_t *data, size_t sz);
