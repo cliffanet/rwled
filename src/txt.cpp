@@ -46,11 +46,11 @@ int txtparam(char *dst, size_t sz, const char *src, char splt) {
     return len;
 }
 
-int txtline(char *dst, size_t sz, const char *src) {
+int txtline(char *dst, size_t sz, const char *src, bool delspace) {
     size_t di = 0;
     int len = 0;
     
-    while (ISSPACE(*src)) {
+    while (delspace && ISSPACE(*src)) {
         src++;
         len++;
     }
@@ -65,7 +65,7 @@ int txtline(char *dst, size_t sz, const char *src) {
     }
 
     if ((sz > 0) && (dst != NULL)) {
-        while ((di > 0) && ISSPACE(dst[di]))
+        while (delspace && (di > 0) && ISSPACE(dst[di]))
             // убираем все пробелы в конце найденного параметра
             di --;
         dst[di] = '\0';

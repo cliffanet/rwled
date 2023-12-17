@@ -8,8 +8,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define ISLNEND(c)      ((c == '\r') || (c == '\n'))
-#define ISSPACE(c)      ((c == ' ') || (c == '\t'))
+#define ISLNEND(c)      (((c) == '\r') || ((c) == '\n'))
+#define ISSPACE(c)      (((c) == ' ') || ((c) == '\t'))
 
 // txtparam - читает текст до появления пробельного символа
 // все пробелы будут пропущены, но если наткнёмся на "перевод строки", он не будет пропущен
@@ -18,7 +18,7 @@ int txtparam(char *dst, size_t sz, const char *src, char splt = '=');
 // txtline - читает строку до обнаружения "перевода строки",
 // при этом сам символ "перевода строки" будет пропущен,
 // чтобы следующий вызов read_param/read_line начался уже со следующей строки
-int txtline(char *dst, size_t sz, const char *src);
+int txtline(char *dst, size_t sz, const char *src, bool delspace = true);
 
 class BufTail {
     char *_buf = NULL;

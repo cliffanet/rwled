@@ -42,7 +42,7 @@ bool DataParser::addstr(const char *s) {
             if (strcmp_P(p, PSTR("tm")) == 0) {
                 const char *c = v;
                 auto n = strtol(v, (char **)&c, 10);
-                if ((n < 0) || (n > 3600000) || (c <= v) || (*c != '\0')) {
+                if ((n < 0) || (n > DATALENMAX) || (c <= v) || (*c != '\0')) {
                     CONSOLE("ERR: TM value");
                     return false;
                 }
@@ -75,10 +75,52 @@ bool DataParser::addstr(const char *s) {
                 uint32_t col = col1;
                 //CONSOLE("led: %d, %08X", n, col);
             }
+            else
+            if (strcmp_P(p, PSTR("LOOP")) == 0) {
+                const char *c = v;
+                auto beg = strtol(v, (char **)&c, 10);
+                if ((beg < 0) || (beg > DATALENMAX) || (c <= v) || (*c != ',')) {
+                    CONSOLE("ERR: LOOP beg");
+                    return false;
+                }
+                v = c+1;
+                auto len = strtol(v, (char **)&c, 10);
+                if ((len < 0) || (len > DATALENMAX) || (c <= v) || (*c != '\0')) {
+                    CONSOLE("ERR: LOOP len");
+                    return false;
+                }
+                CONSOLE("LOOP: %d, %d", beg, len);
+                _state = FIN;
+            }
+            else
+            if (strcmp_P(p, PSTR("END.")) == 0) {
+                if (*v != '\0') {
+                    CONSOLE("ERR: END format");
+                    return false;
+                }
+                _state = END;
+                CONSOLE("END whithout LOOP");
+            }
             else {
                 CONSOLE("ERR: param on DATA: %s", p);
                 return false;
             }
+            break;
+        
+        case FIN:
+            if (strcmp_P(p, PSTR("END.")) == 0) {
+                if (*v != '\0') {
+                    CONSOLE("ERR: END format");
+                    return false;
+                }
+                _state = END;
+                CONSOLE("END");
+            }
+            else {
+                CONSOLE("ERR: param on FIN: %s", p);
+                return false;
+            }
+            break;
     }
 
     return true;
@@ -94,30 +136,31 @@ void DataBufParser::clear() {
 }
 
 bool DataBufParser::read(size_t sz, read_t hnd) {
-    char buf[_tail.len()+sz+1], *b = buf;
+    char buf[_tail.len()+sz+1], *b = buf, *bhnd = buf + _tail.len();
 
-    char *br = buf + _tail.restore(buf);
-    size_t len = hnd(br, sz);
-    if (len <= 0)
+    _tail.restore(buf);
+    size_t len = hnd(bhnd, sz);
+    if ((len <= 0) || (len > sz))
         return false;
     
-    br[len] = '\0';
+    bhnd[len] = '\0';
+    //CONSOLE("read[%d/%d] |%s|", _tail.len(), len, buf);
     len += _tail.len();
-    //CONSOLE("read(%d) free:%d", len, ESP.getFreeHeap());
+    _tail.clear();
 
     while (len > 0) {
         char s[256];
         int l = txtline(s, sizeof(s), b);
 
         if ((l <= 0) || !ISLNEND(b[l-1])) {
-            CONSOLE("tail: [%d] %s", len, b);
+            //CONSOLE("tail: [%d] %s", len, b);
             // больше не нашли окончания строки
             // сохраняем хвост буфера
             _tail.save(b, len);
             return true;
         }
 
-        CONSOLE("line: l=%d |%s|", l, s);
+        //CONSOLE("line: l=%d/%d |%s|", strlen(s), l, s);
         if (!addstr(s)) {
             CONSOLE("PARSE[%d] ERROR: %s", _ln, s);
             clear();

@@ -43,29 +43,43 @@ class _wifiProcess : public Wrk {
     DNSServer dns;
     WebServer web;
     DataBufParser _prs;
+    bool fin = false;
+    uint32_t _to = 1;
 
     void upload_reply() {
         web.sendHeader("Connection", "close");
     }
     void upload_data() {
+        if (fin) return;
         HTTPUpload &upload = web.upload();
         switch (upload.status) {
             case UPLOAD_FILE_START:
                 CONSOLE("Upload: (%d bytes) %s", upload.totalSize, upload.filename.c_str());
                 _prs.clear();
+                _to = 0;
                 break;
             case UPLOAD_FILE_WRITE:
                 CONSOLE("read bytes: %d", upload.currentSize);
-                _prs.read(upload.currentSize, [this, upload](char *buf, size_t sz) {
-                    memcpy(buf, upload.buf, sz);
-                    return sz;
-                });
+                {
+                    auto ok = _prs.read(upload.currentSize, [this, upload](char *buf, size_t sz) {
+                        memcpy(buf, upload.buf, sz);
+                        return sz;
+                    });
+                    if (!ok) {
+                        fin = true;
+                        web.client().stop();
+                        web.client().flush();
+                        web.close();
+                    }
+                }
                 break;
             case UPLOAD_FILE_END:
                 CONSOLE("upload end");
+                fin = true;
                 break;
             case UPLOAD_FILE_ABORTED:
                 CONSOLE("upload aborted");
+                fin = true;
                 break;
         }
     }
@@ -106,6 +120,14 @@ public:
     state_t run() {
         dns.processNextRequest();
         web.handleClient();
+        if (fin) return END;
+        if (_to > 0) {
+            _to ++;
+            if (_to > 2000) {
+                CONSOLE("upload timeout");
+                return END;
+            }
+        }
 
         return DLY;
     }

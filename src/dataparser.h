@@ -9,11 +9,14 @@
 
 #include <functional>
 
+#define DATALENMAX      3600000
+
 class DataParser {
     enum {
         HEAD,
         DATA,
-        FIN
+        FIN,
+        END
     } _state;
 
 public:

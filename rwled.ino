@@ -7,13 +7,12 @@
 #include "src/wifi.h"
 
 void setup() {
-    //Serial.setRxBufferSize(4096);
+    Serial.setRxBufferSize(4096);
     Serial.begin(115200);
-    initConsoleReader(Serial);
+    //initConsoleReader(Serial);
+    wifiStart();
     
     CONSOLE("init finish");
-
-    wifiStart();
 }
 
 void loop() {

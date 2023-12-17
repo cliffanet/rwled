@@ -31,10 +31,12 @@ public:
         auto sz = _fh.available();
         if (sz <= 0) return DLY;
 
-        _prs.read(sz, [this](char *buf, size_t sz) {
+        auto ok = _prs.read(sz, [this](char *buf, size_t sz) {
             size_t rsz = this->_fh.readBytes(buf, sz);
             return rsz;
         });
+
+        if (!ok) return END;
 
         return _fh.available() > 0 ? RUN : DLY;
     }
