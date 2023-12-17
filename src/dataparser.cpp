@@ -1,11 +1,13 @@
 
 #include "dataparser.h"
 #include "log.h"
+#include "ledstream.h"
 
 #include <string.h>
 
 DataParser::DataParser() {
     clear();
+    lstmp();
 }
 
 void DataParser::clear() {
@@ -31,6 +33,8 @@ bool DataParser::addstr(const char *s) {
                 }
                 //CONSOLE("head: %d", n);
                 _state = DATA;
+                uint8_t num = n;
+                return lsadd(LSSTART, num);
             }
             else {
                 CONSOLE("ERR: param on HEAD: %s", p);
@@ -47,6 +51,8 @@ bool DataParser::addstr(const char *s) {
                     return false;
                 }
                 //CONSOLE("tm: %d", n);
+                uint32_t tm = n;
+                return lsadd(LSTIME, tm);
             }
             else
             if (strcmp_P(p, PSTR("ch")) == 0) {
@@ -57,6 +63,8 @@ bool DataParser::addstr(const char *s) {
                     return false;
                 }
                 //CONSOLE("chan: %d", n);
+                uint8_t num = n;
+                return lsadd(LSCHAN, num);
             }
             else
             if (strcmp_P(p, PSTR("led")) == 0) {
@@ -67,13 +75,14 @@ bool DataParser::addstr(const char *s) {
                     return false;
                 }
                 v = c+1;
-                auto col1 = strtoll(v, (char **)&c, 16);
-                if ((col1 < 0) || (col1 > 0xffffffff) || (c <= v) || (*c != '\0')) {
+                auto col = strtoll(v, (char **)&c, 16);
+                if ((col < 0) || (col > 0xffffffff) || (c <= v) || (*c != '\0')) {
                     CONSOLE("ERR: LED color");
                     return false;
                 }
-                uint32_t col = col1;
-                //CONSOLE("led: %d, %08X", n, col);
+                ls_led_t led = { n, col };
+                //CONSOLE("led: %d, %08X", n, led.col);
+                return lsadd(LSLED, led);
             }
             else
             if (strcmp_P(p, PSTR("LOOP")) == 0) {
@@ -91,6 +100,14 @@ bool DataParser::addstr(const char *s) {
                 }
                 CONSOLE("LOOP: %d, %d", beg, len);
                 _state = FIN;
+                auto pos = lsfindtm(beg);
+                CONSOLE("finded pos: %d", pos);
+                if (pos < 0) {
+                    CONSOLE("ERR: LOOP fpos");
+                    return false;
+                }
+                ls_loop_t lp = { beg, len, pos };
+                return lsadd(LSLOOP, lp);
             }
             else
             if (strcmp_P(p, PSTR("END.")) == 0) {
@@ -100,6 +117,7 @@ bool DataParser::addstr(const char *s) {
                 }
                 _state = END;
                 CONSOLE("END whithout LOOP");
+                return lsadd(LSEND);
             }
             else {
                 CONSOLE("ERR: param on DATA: %s", p);
@@ -115,6 +133,7 @@ bool DataParser::addstr(const char *s) {
                 }
                 _state = END;
                 CONSOLE("END");
+                return lsadd(LSEND);
             }
             else {
                 CONSOLE("ERR: param on FIN: %s", p);

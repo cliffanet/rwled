@@ -19,7 +19,7 @@ static bool event_loop = false;
 /* ------------------------------------------------------------------------------------------- *
  *  webserver
  * ------------------------------------------------------------------------------------------- */
-const char index_html[] PROGMEM = R"rawliteral(
+const char html_index[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML>
 <html lang="en">
 <head>
@@ -28,10 +28,26 @@ const char index_html[] PROGMEM = R"rawliteral(
 </head>
 <body>
   <p><h1>File Upload</h1></p>
-  <form method="POST" action="/upload" enctype="multipart/form-data">
+  <form method="POST" action="/upload" enctype="multipart/form-data"
+    onsubmit="document.getElementById('form').innerHTML = '...loading...';return true;">
     <input type="file" name="data"/>
+    <span id="form">
     <input type="submit" name="upload" value="Upload" title="Upload File">
+    </span>
   </form>
+</body>
+</html>
+)rawliteral";
+const char html_ok[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+</head>
+<body>
+  <p><h1>File Upload</h1></p>
+  <p>OK</p>
 </body>
 </html>
 )rawliteral";
@@ -76,6 +92,7 @@ class _wifiProcess : public Wrk {
             case UPLOAD_FILE_END:
                 CONSOLE("upload end");
                 fin = true;
+                web.send_P(200, "text/html", html_ok);
                 break;
             case UPLOAD_FILE_ABORTED:
                 CONSOLE("upload aborted");
@@ -84,7 +101,7 @@ class _wifiProcess : public Wrk {
         }
     }
     void web_index() {
-        web.send_P(200, "text/html", index_html);
+        web.send_P(200, "text/html", html_index);
     }
 
 public:
@@ -113,8 +130,6 @@ public:
     }
     ~_wifiProcess() {
         CONSOLE("(0x%08x) destroy", this);
-        dns.stop();
-        web.stop();
     }
 
     state_t run() {
@@ -131,8 +146,14 @@ public:
 
         return DLY;
     }
+
+    void end() {
+        dns.stop();
+        web.stop();
+        wifiStop();
+    }
 };
-static WrkProc<_wifiProcess> _process;
+//static WrkProc<_wifiProcess> _process;
 
 /* ------------------------------------------------------------------------------------------- *
  *  Запуск / остановка
@@ -230,8 +251,9 @@ bool wifiStart() {
         return false;
     }
 
-    if (!_process.isrun())
-        _process = wrkRun<_wifiProcess>();
+    //if (!_process.isrun())
+    //    _process = 
+        wrkRun<_wifiProcess>();
     
     return true;
 }
@@ -240,7 +262,7 @@ bool wifiStop() {
     esp_err_t err;
     bool ret = true;
 
-    _process.term();
+    //_process.reset();
     
 #define ERR(txt, ...)   { CONSOLE(txt, ##__VA_ARGS__); ret = false; }
 #define ESPRUN(func)    { CONSOLE(TOSTRING(func)); if ((err = func) != ESP_OK) ERR(TOSTRING(func) ": %d", err); }
