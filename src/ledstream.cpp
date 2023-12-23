@@ -58,7 +58,7 @@ bool _bufread(uint8_t *data, size_t sz) {
         if (l+bl > sizeof(buf))
             l = sizeof(buf) - bl;
         l = fstr.read(buf+bl, l);
-        CONSOLE("buf readed: %d / %d", l, fstr.position());
+        //CONSOLE("buf readed: %d / %d", l, fstr.position());
         if (l < 1) {
             CONSOLE("[%d]: can\'t file read", fstr.position());
             return false;
@@ -80,7 +80,6 @@ bool _bufread(uint8_t *data, size_t sz) {
 }
 
 ls_type_t lsget(uint8_t *data, size_t sz) {
-
     ls_rhead_t h;
     if (!_bufread(reinterpret_cast<uint8_t *>(&h), sizeof(h))) {
         CONSOLE("[%d]: hdr read", fstr.position());
@@ -105,6 +104,13 @@ ls_type_t lsget(uint8_t *data, size_t sz) {
     return static_cast<ls_type_t>(h.type);
 }
 
+bool lsseek(size_t pos) {
+    CONSOLE("pos: %d -> %d", fstr.position(), pos);
+    bc = 0;
+    bl = 0;
+    return fstr.seek(pos, SeekSet);
+}
+
 
 /* ------------------------------------------------------------------------------------------- *
  *  временный файл
@@ -113,8 +119,15 @@ static File ftmp;
 static const auto ntmp = PSTR("/.tmp");
 
 bool lstmp() {
-    if (!initok || ftmp)
+    if (!initok) {
+        CONSOLE("fs not inited");
         return false;
+    }
+
+    if (ftmp) {
+        CONSOLE("ftmp already opened");
+        return false;
+    }
     
     char fname[32];
     strncpy_P(fname, ntmp, sizeof(fname));

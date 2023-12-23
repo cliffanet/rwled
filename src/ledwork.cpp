@@ -23,6 +23,7 @@ Adafruit_NeoPixel pixels[] = {
 class _ledWrk : public Wrk {
     uint8_t  num = 0;
     Adafruit_NeoPixel *pix = NULL;
+    bool lchg = false;
     uint32_t tm = 0;
     int64_t beg;
     union {
@@ -35,6 +36,26 @@ class _ledWrk : public Wrk {
 
     static int64_t tmill() {
         return esp_timer_get_time() / 1000LL;
+    }
+
+    static inline uint32_t acolel(uint32_t acol, uint32_t mask, uint8_t a) {
+        return ((acol & mask) * 255 / a) & mask;
+    }
+    static uint32_t acolor(uint32_t acol) {
+        uint8_t a = (acol >> 24) & 0xff;
+        if (a == 0xff)
+            return acol & 0x00ffffff;
+        return
+            acolel(acol, 0x00ff0000, a) &
+            acolel(acol, 0x0000ff00, a) &
+            acolel(acol, 0x000000ff, a);
+    }
+
+    inline void pixredraw() {
+        if (!lchg || (pix == NULL))
+            return;
+        pix->show();
+        lchg = false;
     }
 
 public:
@@ -53,7 +74,6 @@ public:
             return END;
         
         auto tc = tmill() - beg;
-        bool lchg = false;
         while (tc > tm) {
             auto type = lsget(d);
             if (lchg && (type != LSLED) && (pix != NULL)) {
@@ -67,25 +87,42 @@ public:
                 
                 case LSSTART:
                     num = d.n8;
-                    CONSOLE("start: %d", num);
-                    return RUN;
+                    CONSOLE("start: %d (tmill: %lld)", num, tc);
+                    continue;
                 
                 case LSTIME:
                     tm = d.n32;
                     //CONSOLE("tm: %d", tm);
-                    return RUN;
+                    continue;
                 
                 case LSCHAN:
+                    pixredraw();
                     pix = (d.n8 > 0) && (d.n8 <= 4) ?
                         pixels + d.n8 - 1 : NULL;
-                    break;
+                    continue;
                 
                 case LSLED:
                     if (pix != NULL) {
-                        pix->setPixelColor(d.led.num, d.led.color);// & 0x00ffffff);
+                        pix->setPixelColor(d.led.num, acolor(d.led.color));// & 0x00ffffff);
                         lchg = true;
                     };
-                    break;
+                    continue;
+                
+                case LSLOOP:
+                    pixredraw();
+                    if (!lsseek(d.loop.fpos)) {
+                        CONSOLE("seek: %d fail", d.loop.fpos);
+                        return END;
+                    }
+                    CONSOLE("LOOP: curbeg=%lld, tm=%d, len=%d", beg, d.loop.tm, d.loop.len);
+                    beg += d.loop.len - d.loop.tm;
+                    //beg = tmill() +  - d.loop.tm;
+                    tm = d.loop.tm;
+                    num = 0;
+                    pix = NULL;
+                    CONSOLE("beg: %lld / %d", beg, tm);
+                    CONSOLE("tmill: %lld", tmill());
+                    return RUN;
                 
                 case LSEND:
                     CONSOLE("end");
@@ -93,10 +130,7 @@ public:
             }
         }
 
-        if (lchg && (pix != NULL)) {
-            pix->show();
-            lchg = false;
-        }
+        pixredraw();
 
         //CONSOLE("wait: %d/%d", tc, tm);
 

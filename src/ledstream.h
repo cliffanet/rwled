@@ -46,6 +46,7 @@ template <typename T>
 ls_type_t lsget(T &data) {
     return lsget(reinterpret_cast<uint8_t *>(&data), sizeof(T));
 }
+bool lsseek(size_t pos);
 
 
 bool lstmp();
