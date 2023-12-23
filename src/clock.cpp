@@ -1,12 +1,17 @@
 
 #include "clock.h"
 
+#include <esp_timer.h>
 #include "soc/rtc.h"
 extern "C" {
   #include <esp32/clk.h>
 }
 
 #include "esp32-hal-gpio.h" // OPEN_DRAIN
+
+int64_t tmill() {
+    return esp_timer_get_time() / 1000LL;
+}
 
 /* ------------------------------------------------------------------------------------------- *
  *  RTC-таймер, который не сбрасывается при deep sleep

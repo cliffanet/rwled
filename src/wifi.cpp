@@ -6,7 +6,10 @@
 #include "worker.h"
 #include "dataparser.h"
 #include "ledstream.h"
+#include "btn.h"
 #include "log.h"
+
+#include "ledwork.h"
 
 #include <esp_err.h>
 #include <esp_wifi.h>
@@ -16,6 +19,7 @@
 
 static esp_netif_t *_netif = NULL;
 static bool event_loop = false;
+bool _wifiStop();
 
 /* ------------------------------------------------------------------------------------------- *
  *  webserver
@@ -40,8 +44,12 @@ const char html_index[] PROGMEM = R"rawliteral(
       format spiffs
     </span>
     <br />
-    <progress id="prog" value="0" max="100" style="width:100%;"></progress>
+    <progress id="prog" value="0" max="100" style="width:100%%;"></progress>
     <h3 id="status"></h3>
+    <br />
+    <p>exist file: %d b</p>
+    <p>SPIFFS used: %d b</p>
+    <p>SPIFFS full: %d b</p>
   </form>
   <script>
     function _(el) {
@@ -67,7 +75,7 @@ const char html_index[] PROGMEM = R"rawliteral(
     function prog(e) {
       var p = Math.round((e.loaded / e.total) * 100);
       _("prog").value = p;
-      h("status", p + "% ("+e.loaded+" of "+e.total+" b)");
+      h("status", p + "%% ("+e.loaded+" of "+e.total+" b)");
     }
     function cmpl(e) {
       h("status", e.target.responseText?"OK: "+e.target.responseText:"OK");
@@ -86,7 +94,7 @@ const char html_index[] PROGMEM = R"rawliteral(
 /* ------------------------------------------------------------------------------------------- *
  *  процессинг
  * ------------------------------------------------------------------------------------------- */
-class _wifiProcess : public Wrk {
+class _wifiWrk : public Wrk {
     DNSServer dns;
     WebServer web;
     DataBufParser _prs;
@@ -139,11 +147,18 @@ class _wifiProcess : public Wrk {
         }
     }
     void web_index() {
-        web.send_P(200, "text/html", html_index);
+        char ctype[64];
+        strncpy_P(ctype, PSTR("text/html"), sizeof(ctype));
+
+        char s[strlen_P(html_index)+64];
+        auto i = lsinfo();
+        snprintf_P(s, sizeof(s), html_index, i.fsize, i.used, i.total);
+
+        web.send(200, ctype, (String)s);
     }
 
 public:
-    _wifiProcess() :
+    _wifiWrk() :
         web(80)
     {
   delay(100);
@@ -165,8 +180,10 @@ public:
         );
         web.onNotFound([this]() { web_index(); });
         web.begin();
+
+        btnMode(BTNWIFI);
     }
-    ~_wifiProcess() {
+    ~_wifiWrk() {
         CONSOLE("(0x%08x) destroy", this);
     }
 
@@ -188,10 +205,11 @@ public:
     void end() {
         dns.stop();
         web.stop();
-        wifiStop();
+        _wifiStop();
+        ledStart();
     }
 };
-//static WrkProc<_wifiProcess> _process;
+static WrkProc<_wifiWrk> _wifi;
 
 /* ------------------------------------------------------------------------------------------- *
  *  Запуск / остановка
@@ -289,18 +307,15 @@ bool wifiStart() {
         return false;
     }
 
-    //if (!_process.isrun())
-    //    _process = 
-        wrkRun<_wifiProcess>();
+    if (!_wifi.isrun())
+        _wifi = wrkRun<_wifiWrk>();
     
     return true;
 }
 
-bool wifiStop() {
+bool _wifiStop() {
     esp_err_t err;
     bool ret = true;
-
-    //_process.reset();
     
 #define ERR(txt, ...)   { CONSOLE(txt, ##__VA_ARGS__); ret = false; }
 #define ESPRUN(func)    { CONSOLE(TOSTRING(func)); if ((err = func) != ESP_OK) ERR(TOSTRING(func) ": [%d] %s", err, esp_err_to_name(err)); }
@@ -326,4 +341,14 @@ bool wifiStop() {
 #undef ESPRUN
     
     return ret;
+}
+
+bool wifiStop() {
+    if (_wifi.isrun())
+        _wifi.term();
+    else {
+        _wifi.reset();
+        return _wifiStop();
+    }
+    return true;
 }

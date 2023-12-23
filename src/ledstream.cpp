@@ -80,6 +80,15 @@ bool lsformat() {
     return true;
 }
 
+ls_info_t lsinfo() {
+    size_t total = 0, used = 0;
+    ESPDO(esp_spiffs_info(NULL, &total, &used), return { 0 });
+
+    size_t fsize = fstr ? fstr.size() : 0;
+
+    return { fsize, used, total };
+}
+
 /* ------------------------------------------------------------------------------------------- *
  *  основной файл потока
  * ------------------------------------------------------------------------------------------- */

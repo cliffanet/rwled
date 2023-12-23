@@ -38,8 +38,15 @@ typedef struct __attribute__((__packed__)) {
     uint32_t    fpos;
 } ls_loop_t;
 
+typedef struct {
+    uint32_t    fsize;
+    uint32_t    used;
+    uint32_t    total;
+} ls_info_t;
+
 bool lsbegin();
 bool lsformat();
+ls_info_t lsinfo();
 
 bool lsopened();
 ls_type_t lsget(uint8_t *data, size_t sz);

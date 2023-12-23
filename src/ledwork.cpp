@@ -2,21 +2,23 @@
 #include "ledwork.h"
 #include "worker.h"
 #include "ledstream.h"
+#include "clock.h"
+#include "btn.h"
 #include "log.h"
-
-#include <esp_timer.h>
 
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
  #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
 #endif
 
-#define NUMPIXELS 60 // Popular NeoPixel ring size
+ // Popular NeoPixel ring size
+#define NUMPIXELS 60
+#define PINENABLE 14
 
 Adafruit_NeoPixel pixels[] = {
+    Adafruit_NeoPixel(NUMPIXELS, 26, NEO_GRB + NEO_KHZ800),
     Adafruit_NeoPixel(NUMPIXELS, 27, NEO_GRB + NEO_KHZ800),
     Adafruit_NeoPixel(NUMPIXELS, 25, NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(NUMPIXELS, 26, NEO_GRB + NEO_KHZ800),
     Adafruit_NeoPixel(NUMPIXELS, 32, NEO_GRB + NEO_KHZ800),
 };
 
@@ -33,10 +35,6 @@ class _ledWrk : public Wrk {
         ls_led_t    led;
         ls_loop_t   loop;
     } d = {};
-
-    static int64_t tmill() {
-        return esp_timer_get_time() / 1000LL;
-    }
 
     static inline uint32_t acolel(uint32_t acol, uint32_t mask, uint8_t a) {
         return ((acol & mask) * 255 / a) & mask;
@@ -62,6 +60,9 @@ public:
     _ledWrk() {
         for (auto &p: pixels) p.begin();
         beg = tmill();
+        ledOn();
+
+        btnMode(BTNNORM);
     }
 #ifdef FWVER_DEBUG
     ~_ledWrk() {
@@ -158,4 +159,21 @@ bool ledStop() {
         return false;
     _ledwrk.term();
     return true;
+}
+
+void ledOn() {
+    if (!digitalRead(PINENABLE)) {
+        for (auto &pix: pixels) {
+            for (uint8_t n=0; n < NUMPIXELS; n++)
+                pix.setPixelColor(n, 0);
+            pix.show();
+        }
+    }
+
+    pinMode(PINENABLE, OUTPUT);
+    digitalWrite(PINENABLE, HIGH);
+}
+
+void ledOff() {
+    digitalWrite(PINENABLE, LOW);
 }

@@ -8,4 +8,7 @@
 bool ledStart();
 bool ledStop();
 
+void ledOn();
+void ledOff();
+
 #endif // _ledwork_H
