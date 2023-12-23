@@ -7,6 +7,7 @@
 #include "dataparser.h"
 #include "ledstream.h"
 #include "btn.h"
+#include "indicator.h"
 #include "log.h"
 
 #include "ledwork.h"
@@ -199,6 +200,8 @@ public:
             }
         }
 
+        indicator(IGRN, [](uint16_t v){ return (v == 35) || (v == 37); }, 5000);
+
         return DLY;
     }
 
@@ -206,6 +209,7 @@ public:
         dns.stop();
         web.stop();
         _wifiStop();
+        indOff();
         ledStart();
     }
 };

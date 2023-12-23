@@ -4,12 +4,14 @@
 #include "src/clock.h"
 #include "src/worker.h"
 #include "src/console.h"
-#include "src/wifi.h"
+#include "src/indicator.h"
 #include "src/ledstream.h"
+#include "src/wifi.h"
 
 void setup() {
     Serial.setRxBufferSize(4096);
     Serial.begin(115200);
+    indbegin();
     lsbegin();
     //initConsoleReader(Serial);
     wifiStart();
