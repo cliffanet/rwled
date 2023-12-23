@@ -148,7 +148,7 @@ Future<bool> PlayerSave() async {
 
         Map<int,List<int>> val = {};
 
-        for (int tm = 0; tm <= s.move.tmlen; tm += 10) {
+        for (int tm = 0; tm <= s.move.tmlen; tm += 30) {
             s.move.tm = tm;
             final chanall = s.leds.info(tm,
                 s.move.val(ParType.x),

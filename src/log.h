@@ -24,4 +24,14 @@ void conslog_P(const char *s, ...);
 
 #endif // FWVER_DEBUG
 
+#define ESPDO(func, ...)    do { \
+        CONSOLE(TOSTRING(func)); \
+        esp_err_t err = func; \
+        if (err != ESP_OK) { \
+            CONSOLE(TOSTRING(func) ": [%d] %s", err, esp_err_to_name(err)); \
+            __VA_ARGS__; \
+        } \
+    } while (0)
+
+
 #endif // _log_H

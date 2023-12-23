@@ -5,6 +5,7 @@
 #include "wifi.h"
 #include "worker.h"
 #include "dataparser.h"
+#include "ledstream.h"
 #include "log.h"
 
 #include <esp_err.h>
@@ -19,6 +20,10 @@ static bool event_loop = false;
 /* ------------------------------------------------------------------------------------------- *
  *  webserver
  * ------------------------------------------------------------------------------------------- */
+const char html_ok[] PROGMEM = R"rawliteral(
+<p>Uploaded</p>
+)rawliteral";
+
 const char html_index[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML>
 <html lang="en">
@@ -27,27 +32,53 @@ const char html_index[] PROGMEM = R"rawliteral(
   <meta charset="UTF-8">
 </head>
 <body>
-  <p><h1>File Upload</h1></p>
-  <form method="POST" action="/upload" enctype="multipart/form-data"
-    onsubmit="document.getElementById('form').innerHTML = '...loading...';return true;">
-    <input type="file" name="data"/>
-    <span id="form">
-    <input type="submit" name="upload" value="Upload" title="Upload File">
+  <p><h1>LED Upload</h1></p>
+  <form method="POST" enctype="multipart/form-data" id="formup">
+    <input type="file" name="data" id="data" onchange="uploadFile()"/>
+    <span>
+      <input type="checkbox" name="fmt" id="fmt" />
+      format spiffs
     </span>
+    <br />
+    <progress id="prog" value="0" max="100" style="width:100%;"></progress>
+    <h3 id="status"></h3>
   </form>
-</body>
-</html>
-)rawliteral";
-const char html_ok[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML>
-<html lang="en">
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta charset="UTF-8">
-</head>
-<body>
-  <p><h1>File Upload</h1></p>
-  <p>OK</p>
+  <script>
+    function _(el) {
+      return document.getElementById(el);
+    }
+    function h(el, html) {
+      _(el).innerHTML = html;
+    }
+    function uploadFile() {
+      var file = _("data").files[0];
+      var f = new FormData();
+      if (_("fmt").checked) // before file!
+        f.append("fmt", "on");
+      f.append("data", file);
+      var ajax = new XMLHttpRequest();
+      ajax.upload.addEventListener("progress", prog, false);
+      ajax.addEventListener("load", cmpl, false);
+      ajax.addEventListener("error", err, false);
+      ajax.addEventListener("abort", abrt, false);
+      ajax.open("POST", "/upload");
+      ajax.send(f);
+    }
+    function prog(e) {
+      var p = Math.round((e.loaded / e.total) * 100);
+      _("prog").value = p;
+      h("status", p + "% ("+e.loaded+" of "+e.total+" b)");
+    }
+    function cmpl(e) {
+      h("status", e.target.responseText?"OK: "+e.target.responseText:"OK");
+    }
+    function err(e) {
+      h("status", "FAIL");
+    }
+    function abrt(e) {
+      h("status", "Aborted");
+    }
+  </script>
 </body>
 </html>
 )rawliteral";
@@ -73,6 +104,12 @@ class _wifiProcess : public Wrk {
                 CONSOLE("Upload: (%d bytes) %s", upload.totalSize, upload.filename.c_str());
                 _prs.clear();
                 _to = 0;
+                {
+                    auto f = web.arg(String("fmt"));
+                if (f == "on")
+                    lsformat();
+                else CONSOLE("no fmt: %s", f.c_str());
+                }
                 break;
             case UPLOAD_FILE_WRITE:
                 CONSOLE("read bytes: %d", upload.currentSize);
@@ -88,6 +125,7 @@ class _wifiProcess : public Wrk {
                         web.close();
                     }
                 }
+                _to = 1;
                 break;
             case UPLOAD_FILE_END:
                 CONSOLE("upload end");
@@ -162,7 +200,7 @@ static bool _wifiStart() {
     esp_err_t err;
 
 #define ERR(txt, ...)   { CONSOLE(txt, ##__VA_ARGS__); return false; }
-#define ESPRUN(func)    { CONSOLE(TOSTRING(func)); if ((err = func) != ESP_OK) ERR(TOSTRING(func) ": %d", err); }
+#define ESPRUN(func)    { CONSOLE(TOSTRING(func)); if ((err = func) != ESP_OK) ERR(TOSTRING(func) ": [%d] %s", err, esp_err_to_name(err)); }
     
     // event loop
     if (!event_loop) {
@@ -265,7 +303,7 @@ bool wifiStop() {
     //_process.reset();
     
 #define ERR(txt, ...)   { CONSOLE(txt, ##__VA_ARGS__); ret = false; }
-#define ESPRUN(func)    { CONSOLE(TOSTRING(func)); if ((err = func) != ESP_OK) ERR(TOSTRING(func) ": %d", err); }
+#define ESPRUN(func)    { CONSOLE(TOSTRING(func)); if ((err = func) != ESP_OK) ERR(TOSTRING(func) ": [%d] %s", err, esp_err_to_name(err)); }
     
     ESPRUN(esp_wifi_stop());
     ESPRUN(esp_wifi_deinit());

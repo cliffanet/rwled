@@ -39,6 +39,7 @@ typedef struct __attribute__((__packed__)) {
 } ls_loop_t;
 
 bool lsbegin();
+bool lsformat();
 
 bool lsopened();
 ls_type_t lsget(uint8_t *data, size_t sz);
