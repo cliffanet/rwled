@@ -209,7 +209,7 @@ public:
         dns.stop();
         web.stop();
         _wifiStop();
-        indOff();
+        indClear();
         ledStart();
     }
 };

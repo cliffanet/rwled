@@ -16,10 +16,10 @@
 #define PINENABLE 14
 
 Adafruit_NeoPixel pixels[] = {
-    Adafruit_NeoPixel(NUMPIXELS, 26, NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(NUMPIXELS, 27, NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(NUMPIXELS, 25, NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(NUMPIXELS, 32, NEO_GRB + NEO_KHZ800),
+    Adafruit_NeoPixel(NUMPIXELS, 26, NEO_GRB + NEO_KHZ400), // NEO_KHZ400 / NEO_KHZ800
+    Adafruit_NeoPixel(NUMPIXELS, 27, NEO_GRB + NEO_KHZ400),
+    Adafruit_NeoPixel(NUMPIXELS, 25, NEO_GRB + NEO_KHZ400),
+    Adafruit_NeoPixel(NUMPIXELS, 32, NEO_GRB + NEO_KHZ400),
 };
 
 class _ledWrk : public Wrk {
@@ -103,8 +103,8 @@ public:
                     continue;
                 
                 case LSLED:
-                    if (pix != NULL) {
-                        pix->setPixelColor(d.led.num, acolor(d.led.color));// & 0x00ffffff);
+                    if ((pix != NULL) && (d.led.num > 0) && (d.led.num <= NUMPIXELS)) {
+                        pix->setPixelColor(d.led.num-1, acolor(d.led.color));// & 0x00ffffff);
                         lchg = true;
                     };
                     continue;

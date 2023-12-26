@@ -13,7 +13,7 @@ typedef enum {
 } indicator_col_t;
 
 void indbegin();
-void indOff(indicator_col_t col);
+void indClear();
 
 typedef std::function<bool (uint16_t t)> indicator_val_t;
 void indicator(indicator_col_t col, indicator_val_t val, uint16_t interval = 10000);

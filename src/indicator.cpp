@@ -25,8 +25,9 @@ static void indset(indicator_col_t col, uint8_t val) {
     }
 }
 
-void indOff(indicator_col_t col) {
-    indset(col, LOW);
+void indClear() {
+    digitalWrite(PINRED, LOW);
+    digitalWrite(PINGRN, LOW);
 }
 
 void indicator(indicator_col_t col, indicator_val_t val, uint16_t interval) {
