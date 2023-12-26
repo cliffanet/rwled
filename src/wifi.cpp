@@ -40,10 +40,6 @@ const char html_index[] PROGMEM = R"rawliteral(
   <p><h1>LED Upload</h1></p>
   <form method="POST" enctype="multipart/form-data" id="formup">
     <input type="file" name="data" id="data" onchange="uploadFile()"/>
-    <span>
-      <input type="checkbox" name="fmt" id="fmt" />
-      format spiffs
-    </span>
     <br />
     <progress id="prog" value="0" max="100" style="width:100%%;"></progress>
     <h3 id="status"></h3>
@@ -52,6 +48,8 @@ const char html_index[] PROGMEM = R"rawliteral(
     <p>SPIFFS used: %d b</p>
     <p>SPIFFS full: %d b</p>
   </form>
+  <input type="checkbox" id="fmtchk" />
+  <button id="fmtbtn" onclick="format()">Format SPIFFS</button>
   <script>
     function _(el) {
       return document.getElementById(el);
@@ -62,9 +60,9 @@ const char html_index[] PROGMEM = R"rawliteral(
     function uploadFile() {
       var file = _("data").files[0];
       var f = new FormData();
-      if (_("fmt").checked) // before file!
-        f.append("fmt", "on");
       f.append("data", file);
+      _("data").disabled = true;
+      _("fmtbtn").disabled = true;
       var ajax = new XMLHttpRequest();
       ajax.upload.addEventListener("progress", prog, false);
       ajax.addEventListener("load", cmpl, false);
@@ -77,15 +75,34 @@ const char html_index[] PROGMEM = R"rawliteral(
       var p = Math.round((e.loaded / e.total) * 100);
       _("prog").value = p;
       h("status", p + "%% ("+e.loaded+" of "+e.total+" b)");
+      _("data").disabled = false;
+    }
+    function format() {
+      if (!_("fmtchk").checked)
+        return false;
+      _("data").disabled = true;
+      _("fmtbtn").disabled = true;
+      var ajax = new XMLHttpRequest();
+      ajax.addEventListener("load", cmpl, false);
+      ajax.addEventListener("error", err, false);
+      ajax.addEventListener("abort", abrt, false);
+      ajax.open("GET", "/fmt", true);
+      ajax.send();
     }
     function cmpl(e) {
       h("status", e.target.responseText?"OK: "+e.target.responseText:"OK");
+      _("data").disabled = false;
+      _("fmtbtn").disabled = false;
     }
     function err(e) {
       h("status", "FAIL");
+      _("data").disabled = false;
+      _("fmtbtn").disabled = false;
     }
     function abrt(e) {
       h("status", "Aborted");
+      _("data").disabled = false;
+      _("fmtbtn").disabled = false;
     }
   </script>
 </body>
@@ -112,13 +129,7 @@ class _wifiWrk : public Wrk {
             case UPLOAD_FILE_START:
                 CONSOLE("Upload: (%d bytes) %s", upload.totalSize, upload.filename.c_str());
                 _prs.clear();
-                _to = 0;
-                {
-                    auto f = web.arg(String("fmt"));
-                if (f == "on")
-                    lsformat();
-                else CONSOLE("no fmt: %s", f.c_str());
-                }
+                _to = 1;
                 break;
             case UPLOAD_FILE_WRITE:
                 CONSOLE("read bytes: %d", upload.currentSize);
@@ -146,6 +157,14 @@ class _wifiWrk : public Wrk {
                 fin = true;
                 break;
         }
+    }
+    void format() {
+        char ctype[64];
+        strncpy_P(ctype, PSTR("text/html"), sizeof(ctype));
+
+        _to = 1;
+        bool ok = lsformat();
+        web.send_P(200, ctype, ok ? PSTR("Formatted") : PSTR("format ERROR"));
     }
     void web_index() {
         char ctype[64];
@@ -179,6 +198,7 @@ public:
             [this]() { upload_reply(); },
             [this]() { upload_data(); }
         );
+        web.on("/fmt", HTTP_GET, [this]() { format(); });
         web.onNotFound([this]() { web_index(); });
         web.begin();
 
