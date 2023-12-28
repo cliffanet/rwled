@@ -7,15 +7,19 @@
 
 #include <functional>
 
-typedef enum {
-    IRED = 0,
-    IGRN
-} indicator_col_t;
+#define PINRED  16
+#define PINGRN  17
 
-void indbegin();
-void indClear();
+class Indicator {
+    public:
+        typedef std::function<bool (uint16_t t)> hnd_t;
+        const hnd_t red, grn;
+        const int64_t tm;
+        const uint16_t interval;
 
-typedef std::function<bool (uint16_t t)> indicator_val_t;
-void indicator(indicator_col_t col, indicator_val_t val, uint16_t interval = 10000);
+        Indicator(hnd_t red, hnd_t grn, uint16_t interval = 10000);
+        ~Indicator();
+};
+
 
 #endif // _indicator_H

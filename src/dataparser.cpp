@@ -7,7 +7,6 @@
 
 DataParser::DataParser() {
     clear();
-    lstmp();
 }
 
 void DataParser::clear() {

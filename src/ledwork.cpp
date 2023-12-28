@@ -4,6 +4,7 @@
 #include "ledstream.h"
 #include "clock.h"
 #include "btn.h"
+#include "indicator.h"
 #include "log.h"
 
 #include <Adafruit_NeoPixel.h>
@@ -16,13 +17,19 @@
 #define PINENABLE 14
 
 Adafruit_NeoPixel pixels[] = {
-    Adafruit_NeoPixel(NUMPIXELS, 26, NEO_GRB + NEO_KHZ400), // NEO_KHZ400 / NEO_KHZ800
-    Adafruit_NeoPixel(NUMPIXELS, 27, NEO_GRB + NEO_KHZ400),
-    Adafruit_NeoPixel(NUMPIXELS, 25, NEO_GRB + NEO_KHZ400),
-    Adafruit_NeoPixel(NUMPIXELS, 32, NEO_GRB + NEO_KHZ400),
+    Adafruit_NeoPixel(NUMPIXELS, 26, NEO_GRB + NEO_KHZ800), // NEO_KHZ400 / NEO_KHZ800
+    Adafruit_NeoPixel(NUMPIXELS, 27, NEO_GRB + NEO_KHZ800),
+    Adafruit_NeoPixel(NUMPIXELS, 25, NEO_GRB + NEO_KHZ800),
+    Adafruit_NeoPixel(NUMPIXELS, 32, NEO_GRB + NEO_KHZ800),
 };
 
 class _ledWrk : public Wrk {
+    const Indicator _ind = Indicator(
+        [](uint16_t t){ return t < 10; },
+        NULL,
+        2000
+    );
+
     uint8_t  num = 0;
     Adafruit_NeoPixel *pix = NULL;
     bool lchg = false;
@@ -61,8 +68,6 @@ public:
         for (auto &p: pixels) p.begin();
         beg = tmill();
         ledOn();
-
-        btnMode(BTNNORM);
     }
 #ifdef FWVER_DEBUG
     ~_ledWrk() {
@@ -100,13 +105,14 @@ public:
                     pixredraw();
                     pix = (d.n8 > 0) && (d.n8 <= 4) ?
                         pixels + d.n8 - 1 : NULL;
+                    //CONSOLE("ch: %d", d.n8);
                     continue;
                 
                 case LSLED:
                     if ((pix != NULL) && (d.led.num > 0) && (d.led.num <= NUMPIXELS)) {
                         pix->setPixelColor(d.led.num-1, acolor(d.led.color));// & 0x00ffffff);
                         lchg = true;
-                    };
+                    }
                     continue;
                 
                 case LSLOOP:

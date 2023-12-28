@@ -11,9 +11,7 @@
 #include "esp_err.h"
 #include "esp_spiffs.h"
 
-static FILE* fstr = NULL;
 static const auto mnt = PSTR("");
-static const auto nstr = PSTR("/strm.led");
 #define PFNAME(s)   \
     char fname[32]; \
     strncpy_P(fname, s, sizeof(fname));
@@ -69,10 +67,9 @@ bool lsbegin() {
       .format_if_mount_failed = true
     };
     ESPDO(esp_vfs_spiffs_register(&conf), return false);
-
-    fstr = open_P(nstr);
     
     initok = true;
+    lsopen();
 
     const char dir[] = {'/', '\0'};
     listdir();
@@ -85,10 +82,7 @@ bool lsbegin() {
 }
 
 bool lsformat() {
-    if (fstr != NULL) {
-        fclose(fstr);
-        fstr = NULL;
-    }
+    lsclose();
     PFNAME(mnt);
     if (esp_spiffs_mounted(NULL)) {
         ESPDO(esp_vfs_spiffs_unregister(NULL), return false);
@@ -104,6 +98,13 @@ bool lsformat() {
     return true;
 }
 
+/* ------------------------------------------------------------------------------------------- *
+ *  основной файл потока
+ * ------------------------------------------------------------------------------------------- */
+static FILE* fstr = NULL;
+static const auto nstr = PSTR("/strm.led");
+static uint8_t _mynum = 0;
+
 ls_info_t lsinfo() {
     size_t total = 0, used = 0;
     ESPDO(esp_spiffs_info(NULL, &total, &used), return { 0 });
@@ -116,9 +117,38 @@ ls_info_t lsinfo() {
     return { st.st_size, used, total };
 }
 
-/* ------------------------------------------------------------------------------------------- *
- *  основной файл потока
- * ------------------------------------------------------------------------------------------- */
+bool lsopen() {
+    if (fstr != NULL)
+        return false;
+    
+    fstr = open_P(nstr);
+    if (fstr == NULL) return false;
+
+    if (lsget(_mynum) != LSSTART) {
+        CONSOLE("file format fail");
+        _mynum = 0;
+        lsseek(0);
+    }
+    else
+        CONSOLE("mynum: %d", _mynum);
+    
+    return fstr != NULL;
+}
+
+bool lsclose() {
+    if (fstr == NULL)
+        return false;
+    
+    fclose(fstr);
+    fstr = NULL;
+    _mynum = 0;
+
+    return true;
+}
+
+uint8_t lsnum() {
+    return _mynum;
+}
 
 bool lsopened() {
     return fstr != NULL;
@@ -310,10 +340,7 @@ bool lsfin() {
         CONSOLE("tmp closed");
     }
 
-    if (fstr != NULL) {
-        fclose(fstr);
-        fstr = NULL;
-    }
+    lsclose();
 
     char fsrc[32], fname[32];
     strncpy_P(fsrc, ntmp, sizeof(fsrc));
@@ -329,7 +356,5 @@ bool lsfin() {
         return false;
     }
 
-    fstr = open_P(nstr);
-
-    return true;
+    return lsopen();
 }

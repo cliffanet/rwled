@@ -48,6 +48,9 @@ bool lsbegin();
 bool lsformat();
 ls_info_t lsinfo();
 
+bool lsopen();
+bool lsclose();
+uint8_t lsnum();
 bool lsopened();
 ls_type_t lsget(uint8_t *data, size_t sz);
 template <typename T>

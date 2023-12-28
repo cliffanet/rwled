@@ -5,28 +5,17 @@
 #include "wifi.h"
 #include "log.h"
 
+#include <list>
 #include "esp32-hal-gpio.h"
 
 class _btnWrk : public Wrk {
-    btn_mode_t _mode;
     int8_t _pushed = 0;
     bool _click = false;
 
-    void clksngl() {
-        CONSOLE("mode: %d", _mode);
-        switch (_mode) {
-            case BTNWIFI:
-                wifiStop();
-                break;
-        }
-    }
-
-    void clklong() {
-        CONSOLE("mode: %d", _mode);
-    }
+    std::list<Btn*> _hnd;
 
 public:
-    _btnWrk(btn_mode_t m) : _mode(m) {
+    _btnWrk() {
         pinMode(PINBTN, INPUT);
     }
 #ifdef FWVER_DEBUG
@@ -35,34 +24,49 @@ public:
     }
 #endif
 
-    void mode(btn_mode_t m) {
-        _mode = m;
+    bool empty() const {
+        return _hnd.empty();
     }
-    btn_mode_t mode() const {
-        return _mode;
+
+    void add(Btn *b) {
+        CONSOLE("[%d]: 0x%08x", _hnd.size(), b);
+        _hnd.push_back(b);
+    }
+    bool del(Btn *b) {
+        CONSOLE("[%d]: 0x%08x", _hnd.size(), b);
+        for (auto p = _hnd.begin(); p != _hnd.end(); p++)
+            if (*p == b) {
+                CONSOLE("found");
+                _hnd.erase(p);
+                return true;
+            }
+
+        return false;
     }
 
     state_t run() {
-        if (_mode == BTNNONE)
+        if (_hnd.empty())
             return END;
         bool pushed = digitalRead(PINBTN) == LOW;
         if (pushed && (_pushed < 0))
             _pushed = 0;
 
         if (!_click) {
-            if (_mode == BTNNORM) {
+            auto h = _hnd.back();
+            if (h->lng != NULL) {
                 // need wait long-click
                 if (pushed) {
                     _pushed++;
                     if (_pushed > 50) {
                         _click = true;
-                        clklong();
+                        h->lng();
                     }
                 }
                 else
                 if (_pushed > 2) {
                     _click = true;
-                    clksngl();
+                    if (h->sng != NULL)
+                        h->sng();
                 }
             }
             else
@@ -70,7 +74,8 @@ public:
                 _pushed++;
                 if (_pushed > 2) {
                     _click = true;
-                    clksngl();
+                    if (h->sng != NULL)
+                        h->sng();
                 }
             }
         }
@@ -87,32 +92,23 @@ public:
 
         return DLY;
     }
-
-    void end() {
-        _mode = BTNNONE;
-    }
 };
 
-static WrkProc<_btnWrk> _btnwrk;
-void btnStart(btn_mode_t mode) {
-    if (_btnwrk.isrun())
-        _btnwrk->mode(mode);
-    else
-        _btnwrk = wrkRun<_btnWrk>(mode);
-    
+static WrkProc<_btnWrk> _btn;
+
+Btn::Btn(hnd_t sng, hnd_t lng) :
+    sng(sng),
+    lng(lng)
+{
+    if (!_btn.isrun())
+        _btn = wrkRun<_btnWrk>();
+    _btn->add(this);
 }
 
-bool btnStop() {
-    if (!_btnwrk.isrun())
-        return false;
-    _btnwrk.term();
-    return true;
-}
-
-bool btnMode(btn_mode_t mode) {
-    if (mode == BTNNONE)
-        return btnStop();
-    else
-        btnStart(mode);
-    return true;
+Btn::~Btn() {
+    if (!_btn.isrun())
+        return;
+    _btn->del(this);
+    if (_btn->empty())
+        _btn.term();
 }

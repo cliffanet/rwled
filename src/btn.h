@@ -2,20 +2,20 @@
     Button worker
 */
 
-#ifndef _btnwork_H
-#define _btnwork_H
+#ifndef _btn_H
+#define _btn_H
+
+#include <functional>
 
 #define PINBTN  35
 
-typedef enum {
-    BTNNONE = 0,
-    BTNWIFI,
-    BTNNORM
-} btn_mode_t;
+class Btn {
+    public:
+        typedef std::function<void (void)> hnd_t;
+        const hnd_t sng, lng;
 
-void btnStart(btn_mode_t mode = BTNWIFI);
-bool btnStop();
+        Btn(hnd_t sng, hnd_t lng = NULL);
+        ~Btn();
+};
 
-bool btnMode(btn_mode_t mode);
-
-#endif // _btnwork_H
+#endif // _btn_H

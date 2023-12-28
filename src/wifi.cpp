@@ -113,6 +113,13 @@ const char html_index[] PROGMEM = R"rawliteral(
  *  процессинг
  * ------------------------------------------------------------------------------------------- */
 class _wifiWrk : public Wrk {
+    const Btn _b = Btn([](){ wifiStop(); });
+    const Indicator _ind = Indicator(
+        [](uint16_t t){ return (t == 5) || (t == 7); },
+        [](uint16_t) { return true; },
+        3000
+    );
+    
     DNSServer dns;
     WebServer web;
     DataBufParser _prs;
@@ -130,6 +137,7 @@ class _wifiWrk : public Wrk {
                 CONSOLE("Upload: (%d bytes) %s", upload.totalSize, upload.filename.c_str());
                 _prs.clear();
                 _to = 1;
+                lstmp();
                 break;
             case UPLOAD_FILE_WRITE:
                 CONSOLE("read bytes: %d", upload.currentSize);
@@ -201,8 +209,6 @@ public:
         web.on("/fmt", HTTP_GET, [this]() { format(); });
         web.onNotFound([this]() { web_index(); });
         web.begin();
-
-        btnMode(BTNWIFI);
     }
     ~_wifiWrk() {
         CONSOLE("(0x%08x) destroy", this);
@@ -220,8 +226,6 @@ public:
             }
         }
 
-        indicator(IGRN, [](uint16_t v){ return (v == 35) || (v == 37); }, 5000);
-
         return DLY;
     }
 
@@ -229,7 +233,6 @@ public:
         dns.stop();
         web.stop();
         _wifiStop();
-        indClear();
         ledStart();
     }
 };
@@ -304,13 +307,18 @@ static bool _wifiStart() {
     cfg.ap.beacon_interval  = 100;
     cfg.ap.authmode         = WIFI_AUTH_OPEN;
 
-    uint16_t n = esp_random();
     cfg.ap.ssid_len =
-        snprintf_P(
-            reinterpret_cast<char*>(cfg.ap.ssid),
-            sizeof(cfg.ap.ssid),
-            PSTR("rwled-%04x"), n
-        );
+        lsopened() ?
+            snprintf_P(
+                reinterpret_cast<char*>(cfg.ap.ssid),
+                sizeof(cfg.ap.ssid),
+                PSTR("rwled-n%02d"), lsnum()
+            ) :
+            snprintf_P(
+                reinterpret_cast<char*>(cfg.ap.ssid),
+                sizeof(cfg.ap.ssid),
+                PSTR("rwled-empty")
+            );
     ESPRUN(esp_wifi_set_config(WIFI_IF_AP, &cfg));
 
     // start
