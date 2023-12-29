@@ -8,6 +8,7 @@
 #include <functional>
 
 #define PINBTN  35
+#define PWRBTN  GPIO_NUM_35
 
 class Btn {
     public:

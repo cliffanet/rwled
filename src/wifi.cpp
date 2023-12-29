@@ -113,13 +113,14 @@ const char html_index[] PROGMEM = R"rawliteral(
  *  процессинг
  * ------------------------------------------------------------------------------------------- */
 class _wifiWrk : public Wrk {
+    const int8_t _num = lsnum();
     const Btn _b = Btn([](){ wifiStop(); });
     const Indicator _ind = Indicator(
-        [](uint16_t t){ return (t == 5) || (t == 7); },
-        [](uint16_t) { return true; },
-        3000
+        [this](uint16_t t) { return t < _num * 5 + 20; },
+        [this](uint16_t t) { return (t >= 10) && (t < _num * 5 + 10) & (t % 5 < 2); },
+        ((static_cast<uint16_t>(_num)+1) / 2 + 5) * 1000
     );
-    
+
     DNSServer dns;
     WebServer web;
     DataBufParser _prs;
@@ -348,6 +349,8 @@ bool wifiStart() {
 bool _wifiStop() {
     esp_err_t err;
     bool ret = true;
+
+    _wifi.reset();
     
 #define ERR(txt, ...)   { CONSOLE(txt, ##__VA_ARGS__); ret = false; }
 #define ESPRUN(func)    { CONSOLE(TOSTRING(func)); if ((err = func) != ESP_OK) ERR(TOSTRING(func) ": [%d] %s", err, esp_err_to_name(err)); }
@@ -376,11 +379,10 @@ bool _wifiStop() {
 }
 
 bool wifiStop() {
-    if (_wifi.isrun())
-        _wifi.term();
-    else {
-        _wifi.reset();
-        return _wifiStop();
-    }
+    if (!_wifi.isrun())
+        return false;
+    
+    _wifi.term();
+
     return true;
 }

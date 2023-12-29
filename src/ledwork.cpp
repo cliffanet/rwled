@@ -5,6 +5,7 @@
 #include "clock.h"
 #include "btn.h"
 #include "indicator.h"
+#include "power.h"
 #include "log.h"
 
 #include <Adafruit_NeoPixel.h>
@@ -28,6 +29,9 @@ class _ledWrk : public Wrk {
         [](uint16_t t){ return t < 10; },
         NULL,
         2000
+    );
+    const Btn _b = Btn(
+        [](){ powerStart(false); }
     );
 
     uint8_t  num = 0;

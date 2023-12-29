@@ -14,9 +14,19 @@ class _btnWrk : public Wrk {
 
     std::list<Btn*> _hnd;
 
+    bool ispushed() {
+        return digitalRead(PINBTN) == LOW;
+    }
+
 public:
     _btnWrk() {
         pinMode(PINBTN, INPUT);
+        if (ispushed())
+            // Если мы стартовали, а кнопка уже нажата,
+            // надо сделать так, чтобы click не сработал,
+            // т.е. представим, что он уже сработал.
+            // Актуально только при включении.
+            _click = true;
     }
 #ifdef FWVER_DEBUG
     ~_btnWrk() {
@@ -47,7 +57,7 @@ public:
     state_t run() {
         if (_hnd.empty())
             return END;
-        bool pushed = digitalRead(PINBTN) == LOW;
+        bool pushed = ispushed();
         if (pushed && (_pushed < 0))
             _pushed = 0;
 

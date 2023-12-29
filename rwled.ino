@@ -6,10 +6,15 @@
 #include "src/console.h"
 #include "src/ledstream.h"
 #include "src/wifi.h"
+#include "src/power.h"
 
 void setup() {
     Serial.setRxBufferSize(4096);
     Serial.begin(115200);
+    powerStart(true);
+}
+
+void pwrinit() {
     lsbegin();
     //initConsoleReader(Serial);
     wifiStart();
