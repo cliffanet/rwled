@@ -17,6 +17,8 @@ class Btn {
 
         Btn(hnd_t sng, hnd_t lng = NULL);
         ~Btn();
+        bool activate();
+        bool hide();
 };
 
 #endif // _btn_H

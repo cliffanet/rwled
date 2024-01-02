@@ -38,9 +38,12 @@ public:
         return _hnd.empty();
     }
 
-    void add(Btn *b) {
+    void add(Btn *b, bool tofirst=false) {
         CONSOLE("[%d]: 0x%08x", _hnd.size(), b);
-        _hnd.push_back(b);
+        if (tofirst)
+            _hnd.push_front(b);
+        else
+            _hnd.push_back(b);
     }
     bool del(Btn *b) {
         CONSOLE("[%d]: 0x%08x", _hnd.size(), b);
@@ -121,4 +124,18 @@ Btn::~Btn() {
     _btn->del(this);
     if (_btn->empty())
         _btn.term();
+}
+
+bool Btn::activate() {
+    if (!_btn.isrun() || !_btn->del(this))
+        return false;
+    _btn->add(this);
+    return true;
+}
+
+bool Btn::hide() {
+    if (!_btn.isrun() || !_btn->del(this))
+        return false;
+    _btn->add(this, true);
+    return true;
 }

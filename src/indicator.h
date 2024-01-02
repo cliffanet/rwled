@@ -19,6 +19,8 @@ class Indicator {
 
         Indicator(hnd_t red, hnd_t grn, uint16_t interval = 10000);
         ~Indicator();
+        bool activate();
+        bool hide();
 };
 
 

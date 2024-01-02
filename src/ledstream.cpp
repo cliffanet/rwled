@@ -104,6 +104,8 @@ bool lsformat() {
 static FILE* fstr = NULL;
 static const auto nstr = PSTR("/strm.led");
 static uint8_t _mynum = 0;
+static uint8_t buf[1100];
+static uint16_t bc = 0, bl = 0;
 
 ls_info_t lsinfo() {
     size_t total = 0, used = 0;
@@ -142,6 +144,8 @@ bool lsclose() {
     fclose(fstr);
     fstr = NULL;
     _mynum = 0;
+    bc = 0;
+    bl = 0;
 
     return true;
 }
@@ -154,8 +158,6 @@ bool lsopened() {
     return fstr != NULL;
 }
 
-static uint8_t buf[1100];
-static uint16_t bc = 0, bl = 0;
 bool _bufread(uint8_t *data, size_t sz) {
     if (sz > bl) {
         if (fstr == NULL) {

@@ -10,7 +10,7 @@
 #include "indicator.h"
 #include "log.h"
 
-#include "ledwork.h"
+#include "jump.h"
 
 #include <esp_err.h>
 #include <esp_wifi.h>
@@ -234,7 +234,7 @@ public:
         dns.stop();
         web.stop();
         _wifiStop();
-        ledStart();
+        jumpStart();
     }
 };
 static WrkProc<_wifiWrk> _wifi;

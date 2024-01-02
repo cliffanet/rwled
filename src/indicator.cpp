@@ -40,9 +40,12 @@ public:
         return _hnd.empty();
     }
 
-    void add(Indicator *ind) {
+    void add(Indicator *ind, bool tofirst=false) {
         CONSOLE("[%d]: 0x%08x", _hnd.size(), ind);
-        _hnd.push_back(ind);
+        if (tofirst)
+            _hnd.push_front(ind);
+        else
+            _hnd.push_back(ind);
     }
     bool del(Indicator *ind) {
         CONSOLE("[%d]: 0x%08x", _hnd.size(), ind);
@@ -89,4 +92,18 @@ Indicator::~Indicator() {
     _ind->del(this);
     if (_ind->empty())
         _ind.term();
+}
+
+bool Indicator::activate() {
+    if (!_ind.isrun() || !_ind->del(this))
+        return false;
+    _ind->add(this);
+    return true;
+}
+
+bool Indicator::hide() {
+    if (!_ind.isrun() || !_ind->del(this))
+        return false;
+    _ind->add(this, true);
+    return true;
 }

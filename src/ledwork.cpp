@@ -3,9 +3,7 @@
 #include "worker.h"
 #include "ledstream.h"
 #include "clock.h"
-#include "btn.h"
 #include "indicator.h"
-#include "power.h"
 #include "log.h"
 
 #include <Adafruit_NeoPixel.h>
@@ -29,9 +27,6 @@ class _ledWrk : public Wrk {
         [](uint16_t t){ return t < 10; },
         NULL,
         2000
-    );
-    const Btn _b = Btn(
-        [](){ powerStart(false); }
     );
 
     uint8_t  num = 0;
@@ -73,11 +68,11 @@ public:
         beg = tmill();
         ledOn();
     }
-#ifdef FWVER_DEBUG
     ~_ledWrk() {
+        lsseek(0);
         CONSOLE("(0x%08x) destroy", this);
+        ledOff();
     }
-#endif
 
     state_t run() {
         if (!lsopened())
@@ -169,6 +164,13 @@ bool ledStop() {
         return false;
     _ledwrk.term();
     return true;
+}
+
+void ledTgl() {
+    if (_ledwrk.isrun())
+        _ledwrk.term();
+    else
+        ledStart();
 }
 
 void ledOn() {

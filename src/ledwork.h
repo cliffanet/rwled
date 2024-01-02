@@ -7,6 +7,7 @@
 
 bool ledStart();
 bool ledStop();
+void ledTgl();
 
 void ledOn();
 void ledOff();
