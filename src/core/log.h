@@ -5,7 +5,7 @@
 #ifndef _log_H
 #define _log_H
 
-#include "../def.h"
+#include "../../def.h"
 
 #ifdef FWVER_DEBUG
 

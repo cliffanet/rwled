@@ -2,7 +2,6 @@
 #include "indicator.h"
 #include "worker.h"
 #include "clock.h"
-#include "bitstring.h"
 #include "log.h"
 
 #include <list>
@@ -13,15 +12,15 @@ class _indWrk : public Wrk {
 
     static void lght(uint8_t i, uint8_t pin, bool v) {
         static uint8_t p = 0;
-        auto vc = bit_test(&p, i);
+        auto vc = p & (1 << i);
         if (v && !vc) {
             digitalWrite(pin, HIGH);
-            bit_set(&p, i);
+            p |= 1 << i;
         }
         else
         if (!v && vc) {
             digitalWrite(pin, LOW);
-            bit_clear(&p, i);
+            p &= ~(1 << i);
         }
     }
 

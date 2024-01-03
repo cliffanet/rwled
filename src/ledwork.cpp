@@ -1,10 +1,10 @@
 
 #include "ledwork.h"
-#include "worker.h"
+#include "core/worker.h"
+#include "core/clock.h"
+#include "core/indicator.h"
+#include "core/log.h"
 #include "ledstream.h"
-#include "clock.h"
-#include "indicator.h"
-#include "log.h"
 
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__

@@ -3,12 +3,10 @@
 */
 
 #include "worker.h"
-
-#include <Arduino.h> // millis()
+#include "clock.h"
+#include "log.h" // временно для отладки
 
 #include <map>
-
-#include "log.h" // временно для отладки
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -42,7 +40,7 @@ void wrkProcess(uint32_t tmmax)
         it.second->timer();
     }
     
-    uint32_t beg = millis();
+    auto beg = tmill();
     bool run = true;
     
     while (run) {
@@ -76,7 +74,7 @@ void wrkProcess(uint32_t tmmax)
                         break;
                 }
             
-            if ((millis()-beg) >= tmmax)
+            if ((tmill()-beg) >= tmmax)
                 return;
         }
     }

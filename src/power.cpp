@@ -3,10 +3,10 @@
 */
 
 #include "power.h"
-#include "worker.h"
-#include "btn.h"
-#include "indicator.h"
-#include "log.h"
+#include "core/worker.h"
+#include "core/btn.h"
+#include "core/indicator.h"
+#include "core/log.h"
 
 #include "esp_sleep.h"
 

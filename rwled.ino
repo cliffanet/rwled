@@ -1,8 +1,8 @@
 //#include <Arduino.h>
 
-#include "src/log.h"
-#include "src/clock.h"
-#include "src/worker.h"
+#include "src/core/log.h"
+#include "src/core/clock.h"
+#include "src/core/worker.h"
 #include "src/console.h"
 #include "src/ledstream.h"
 #include "src/wifi.h"

@@ -1,10 +1,10 @@
 
 #include "console.h"
-#include "worker.h"
+#include "core/worker.h"
+#include "core/log.h"
 #include "dataparser.h"
-#include "log.h"
 
-#include "txt.h"
+#include "core/txt.h"
 
 //#include <Arduino.h> // ESP.getFreeHeap()
 //#include <pgmspace.h>   // PSTR()

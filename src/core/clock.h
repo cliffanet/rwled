@@ -5,7 +5,7 @@
 #ifndef _clock_H
 #define _clock_H
 
-#include "../def.h"
+#include "../../def.h"
 
 #include <stdint.h>
 

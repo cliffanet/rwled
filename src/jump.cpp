@@ -1,10 +1,10 @@
 
 #include "jump.h"
-#include "worker.h"
-#include "clock.h"
-#include "btn.h"
-#include "indicator.h"
-#include "log.h"
+#include "core/worker.h"
+#include "core/clock.h"
+#include "core/btn.h"
+#include "core/indicator.h"
+#include "core/log.h"
 #include "ledwork.h"
 #include "power.h"
 

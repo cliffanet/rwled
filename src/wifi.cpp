@@ -3,13 +3,12 @@
 */
 
 #include "wifi.h"
-#include "worker.h"
+#include "core/worker.h"
+#include "core/btn.h"
+#include "core/indicator.h"
+#include "core/log.h"
 #include "dataparser.h"
 #include "ledstream.h"
-#include "btn.h"
-#include "indicator.h"
-#include "log.h"
-
 #include "jump.h"
 
 #include <esp_err.h>

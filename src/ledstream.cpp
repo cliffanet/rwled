@@ -1,6 +1,6 @@
 
 #include "ledstream.h"
-#include "log.h"
+#include "core/log.h"
 
 #include <stdlib.h>
 #include <cstring>

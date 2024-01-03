@@ -2,7 +2,6 @@
 #include "btn.h"
 #include "worker.h"
 #include "clock.h"
-#include "wifi.h"
 #include "log.h"
 
 #include <list>
