@@ -1,8 +1,8 @@
 /*
-    WiFi functions
+    WiFi-server functions
 */
 
-#include "wifi.h"
+#include "wifiserver.h"
 #include "core/worker.h"
 #include "core/btn.h"
 #include "core/indicator.h"
@@ -10,6 +10,7 @@
 #include "dataparser.h"
 #include "ledstream.h"
 #include "jump.h"
+#include "wifidirect.h"
 
 #include <esp_err.h>
 #include <esp_wifi.h>
@@ -17,9 +18,142 @@
 #include <DNSServer.h>
 #include <WebServer.h>
 
+
+/* ------------------------------------------------------------------------------------------- *
+ *  netif
+ *  из-за того, что esp_netif_deinit не поддерживается,
+ *  мы можем сделать esp_netif_init только один раз
+ * ------------------------------------------------------------------------------------------- */
+bool wifiNetIfInit() {
+    static bool _init = false;
+    if (_init)
+        return true;
+    
+#if CONFIG_IDF_TARGET_ESP32
+        uint8_t mac[8];
+        if (esp_efuse_mac_get_default(mac) == ESP_OK)
+            esp_base_mac_addr_set(mac);
+#endif
+        
+    ESPDO(esp_netif_init(), return false);
+    _init = true;
+    return true;
+}
+
+/* ------------------------------------------------------------------------------------------- *
+ *  Запуск / остановка
+ * ------------------------------------------------------------------------------------------- */
 static esp_netif_t *_netif = NULL;
 static bool event_loop = false;
-bool _wifiStop();
+
+static bool _init() {
+#define ESP(func)   ESPDO(func, return false)
+
+    // event loop
+    if (!event_loop) {
+        ESP(esp_event_loop_create_default());
+        event_loop = true;
+    }
+
+    // netif
+    if (!wifiNetIfInit())
+        return false;
+    
+    if (_netif == NULL) {
+        CONSOLE("esp_netif_create_default_wifi_ap");
+        _netif = esp_netif_create_default_wifi_ap();
+        if (_netif == NULL) {
+            CONSOLE("esp_netif_create_default_wifi_ap fail");
+            return false;
+        }
+        
+        /*
+        esp_netif_dhcp_status_t status = ESP_NETIF_DHCP_INIT;
+        */
+        esp_netif_ip_info_t info = { 0 };
+        IP4_ADDR(&info.ip, 192, 168, 4, 22);
+        info.gw = info.ip;
+        IP4_ADDR(&info.netmask, 255, 255, 255, 0);
+
+        ESP(esp_netif_dhcps_stop(_netif));
+        ESP(esp_netif_set_ip_info(_netif, &info));
+        auto mask = info.netmask.addr;
+        ESP(esp_netif_dhcps_option(_netif, ESP_NETIF_OP_SET, ESP_NETIF_SUBNET_MASK, (void*)&mask, sizeof(mask)));
+        dhcps_lease_t lease = { 0 };
+        lease.enable = true;
+        IP4_ADDR(&lease.start_ip, 192, 168, 4, 101);
+        IP4_ADDR(&lease.end_ip, 192, 168, 4, 111);
+        ESP(esp_netif_dhcps_option(_netif, ESP_NETIF_OP_SET, ESP_NETIF_REQUESTED_IP_ADDRESS, (void*)&lease, sizeof(lease)));
+        ESP(esp_netif_dhcps_start(_netif));
+    }
+    
+    // init
+    wifi_init_config_t init_cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP(esp_wifi_init(&init_cfg));
+    ESP(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+    
+    // mode
+    ESP(esp_wifi_set_mode(WIFI_MODE_AP));
+
+    // config
+    wifi_config_t cfg = { 0 };
+    cfg.ap.channel          = 6;
+    cfg.ap.max_connection   = 4;
+    cfg.ap.beacon_interval  = 100;
+    cfg.ap.authmode         = WIFI_AUTH_OPEN;
+
+    cfg.ap.ssid_len =
+        lsopened() ?
+            snprintf_P(
+                reinterpret_cast<char*>(cfg.ap.ssid),
+                sizeof(cfg.ap.ssid),
+                PSTR("rwled-n%02d"), lsnum()
+            ) :
+            snprintf_P(
+                reinterpret_cast<char*>(cfg.ap.ssid),
+                sizeof(cfg.ap.ssid),
+                PSTR("rwled-empty")
+            );
+    ESP(esp_wifi_set_config(WIFI_IF_AP, &cfg));
+
+    // start
+    ESP(esp_wifi_start());
+    //ESP(esp_wifi_set_max_tx_power(60));
+    
+    CONSOLE("wifi started");
+
+#undef ESP
+    
+    return true;
+}
+
+static bool _stop() {
+    bool ret = true;
+#define ESP(func)   ESPDO(func, ret = false)
+    
+    ESP(esp_wifi_stop());
+    ESP(esp_wifi_deinit());
+    
+    if (_netif != NULL) {
+        ESP(esp_netif_dhcps_stop(_netif));
+        esp_netif_destroy_default_wifi(_netif);
+        _netif = NULL;
+    }
+    
+    // Из описания: Note: Deinitialization is not supported yet
+    // ESP(esp_netif_deinit());
+
+    ESP(esp_event_loop_delete_default());
+    event_loop = false;
+    
+    CONSOLE("wifi stopped: %d", ret);
+    
+#undef ESP
+    
+    return ret;
+}
+
+void _reset();
 
 /* ------------------------------------------------------------------------------------------- *
  *  webserver
@@ -111,9 +245,9 @@ const char html_index[] PROGMEM = R"rawliteral(
 /* ------------------------------------------------------------------------------------------- *
  *  процессинг
  * ------------------------------------------------------------------------------------------- */
-class _wifiWrk : public Wrk {
+class _wsrvWrk : public Wrk {
     const int8_t _num = lsnum();
-    const Btn _b = Btn([](){ wifiStop(); });
+    const Btn _b = Btn([](){ wifiSrvStop(); });
     const Indicator _ind = Indicator(
         [this](uint16_t t) { return t < _num * 5 + 20; },
         [this](uint16_t t) { return (t >= 10) && (t < _num * 5 + 10) & (t % 5 < 2); },
@@ -186,7 +320,7 @@ class _wifiWrk : public Wrk {
     }
 
 public:
-    _wifiWrk() :
+    _wsrvWrk() :
         web(80)
     {
   delay(100);
@@ -210,7 +344,7 @@ public:
         web.onNotFound([this]() { web_index(); });
         web.begin();
     }
-    ~_wifiWrk() {
+    ~_wsrvWrk() {
         CONSOLE("(0x%08x) destroy", this);
     }
 
@@ -232,152 +366,31 @@ public:
     void end() {
         dns.stop();
         web.stop();
-        _wifiStop();
+        _stop();
+        _reset();
         jumpStart();
+        wifiDirectStart();
     }
 };
-static WrkProc<_wifiWrk> _wifi;
+static WrkProc<_wsrvWrk> _wifi;
 
-/* ------------------------------------------------------------------------------------------- *
- *  Запуск / остановка
- * ------------------------------------------------------------------------------------------- */
-static bool _wifiStart() {
-    esp_err_t err;
-
-#define ERR(txt, ...)   { CONSOLE(txt, ##__VA_ARGS__); return false; }
-#define ESPRUN(func)    { CONSOLE(TOSTRING(func)); if ((err = func) != ESP_OK) ERR(TOSTRING(func) ": [%d] %s", err, esp_err_to_name(err)); }
-    
-    // event loop
-    if (!event_loop) {
-        ESPRUN(esp_event_loop_create_default());
-        event_loop = true;
-    }
-
-    // netif
-    static bool netif_init = false;
-    if (!netif_init) {
-#if CONFIG_IDF_TARGET_ESP32
-        uint8_t mac[8];
-        if (esp_efuse_mac_get_default(mac) == ESP_OK)
-            esp_base_mac_addr_set(mac);
-#endif
-        
-        ESPRUN(esp_netif_init());
-        netif_init = true;
-    }
-    
-    if (_netif == NULL) {
-        CONSOLE("esp_netif_create_default_wifi_ap");
-        _netif = esp_netif_create_default_wifi_ap();
-        if (_netif == NULL)
-            ERR("esp_netif_create_default_wifi_ap fail");
-        
-        /*
-        esp_netif_dhcp_status_t status = ESP_NETIF_DHCP_INIT;
-        */
-        esp_netif_ip_info_t info = { 0 };
-        IP4_ADDR(&info.ip, 192, 168, 4, 22);
-        info.gw = info.ip;
-        IP4_ADDR(&info.netmask, 255, 255, 255, 0);
-
-        ESPRUN(esp_netif_dhcps_stop(_netif));
-        ESPRUN(esp_netif_set_ip_info(_netif, &info));
-        auto mask = info.netmask.addr;
-        ESPRUN(esp_netif_dhcps_option(_netif, ESP_NETIF_OP_SET, ESP_NETIF_SUBNET_MASK, (void*)&mask, sizeof(mask)));
-        dhcps_lease_t lease = { 0 };
-        lease.enable = true;
-        IP4_ADDR(&lease.start_ip, 192, 168, 4, 101);
-        IP4_ADDR(&lease.end_ip, 192, 168, 4, 111);
-        ESPRUN(esp_netif_dhcps_option(_netif, ESP_NETIF_OP_SET, ESP_NETIF_REQUESTED_IP_ADDRESS, (void*)&lease, sizeof(lease)));
-        ESPRUN(esp_netif_dhcps_start(_netif));
-    }
-    
-    // init
-    wifi_init_config_t init_cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESPRUN(esp_wifi_init(&init_cfg));
-    ESPRUN(esp_wifi_set_storage(WIFI_STORAGE_RAM));
-    
-    // mode
-    ESPRUN(esp_wifi_set_mode(WIFI_MODE_AP));
-
-    // config
-    wifi_config_t cfg = { 0 };
-    cfg.ap.channel          = 6;
-    cfg.ap.max_connection   = 4;
-    cfg.ap.beacon_interval  = 100;
-    cfg.ap.authmode         = WIFI_AUTH_OPEN;
-
-    cfg.ap.ssid_len =
-        lsopened() ?
-            snprintf_P(
-                reinterpret_cast<char*>(cfg.ap.ssid),
-                sizeof(cfg.ap.ssid),
-                PSTR("rwled-n%02d"), lsnum()
-            ) :
-            snprintf_P(
-                reinterpret_cast<char*>(cfg.ap.ssid),
-                sizeof(cfg.ap.ssid),
-                PSTR("rwled-empty")
-            );
-    ESPRUN(esp_wifi_set_config(WIFI_IF_AP, &cfg));
-
-    // start
-    ESPRUN(esp_wifi_start());
-    //ESPRUN(esp_wifi_set_max_tx_power(60));
-    
-    CONSOLE("wifi started");
-
-#undef ERR
-#undef ESPRUN
-    
-    return true;
+void _reset() {
+    _wifi.reset();
 }
 
-bool wifiStart() {
-    if (!_wifiStart()) {
-        wifiStop();
+bool wifiSrvStart() {
+    if (!_init()) {
+        _stop();
         return false;
     }
 
     if (!_wifi.isrun())
-        _wifi = wrkRun<_wifiWrk>();
+        _wifi = wrkRun<_wsrvWrk>();
     
     return true;
 }
 
-bool _wifiStop() {
-    esp_err_t err;
-    bool ret = true;
-
-    _wifi.reset();
-    
-#define ERR(txt, ...)   { CONSOLE(txt, ##__VA_ARGS__); ret = false; }
-#define ESPRUN(func)    { CONSOLE(TOSTRING(func)); if ((err = func) != ESP_OK) ERR(TOSTRING(func) ": [%d] %s", err, esp_err_to_name(err)); }
-    
-    ESPRUN(esp_wifi_stop());
-    ESPRUN(esp_wifi_deinit());
-    
-    if (_netif != NULL) {
-        ESPRUN(esp_netif_dhcps_stop(_netif));
-        esp_netif_destroy_default_wifi(_netif);
-        _netif = NULL;
-    }
-    
-    // Из описания: Note: Deinitialization is not supported yet
-    // ESPRUN(esp_netif_deinit());
-
-    ESPRUN(esp_event_loop_delete_default());
-    event_loop = false;
-    
-    CONSOLE("wifi stopped");
-    
-#undef ERR
-#undef ESPRUN
-    
-    return ret;
-}
-
-bool wifiStop() {
+bool wifiSrvStop() {
     if (!_wifi.isrun())
         return false;
     
