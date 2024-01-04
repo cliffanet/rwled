@@ -5,9 +5,10 @@
 #include "wifidirect.h"
 #include "core/worker.h"
 #include "core/clock.h"
-#include "core/bindata.h"
 #include "core/log.h"
 #include "ledstream.h"
+#include "ledtest.h"
+#include "jump.h"
 #include "wifiserver.h" // wifiNetIfInit();
 
 #include <esp_err.h>
@@ -105,24 +106,6 @@ class _wnowWrk : public Wrk {
     const int8_t _num = lsnum();
     int64_t _tmsnd = 0;
 
-    static void bcast(const uint8_t *data, uint8_t len) {
-        uint8_t bcaddr[] = { 0xff,0xff,0xff,0xff,0xff,0xff };
-        auto err = esp_now_send(bcaddr, data, len);
-        if (err != ESP_OK)
-            CONSOLE("send fail (len: %d): %s", len, esp_err_to_name(err));
-    }
-
-    template <typename T>
-    void send(uint16_t cmd, T data) {
-        auto d = BinData(cmd, data);
-        bcast(d.buf(), d.sz());
-    }
-
-    void send(uint16_t cmd) {
-        auto d = BinCmd(cmd);
-        bcast(d.buf(), d.sz());
-    }
-
     static void _recv(const uint8_t *mac, const uint8_t *data, int sz);
     void recv(const uint8_t *mac, const uint8_t *data, int sz) {
         CONSOLE("from: %02x.%02x.%02x.%02x.%02x.%02x",
@@ -134,14 +117,30 @@ class _wnowWrk : public Wrk {
             return;
         }
         switch (d.cmd()) {
-            case 1: {
-                    auto tm = d.data<int64_t>();
-                    CONSOLE("beacon: %lld", tm);
+            case 0x01: {
+                    auto r = d.data<wifi_beacon_t>();
+                    CONSOLE("beacon[%d]: %lld", r.num, r.tm);
                 }
                 break;
             
+            case 0x10: {
+                    auto tm = d.data<int32_t>();
+                    CONSOLE("ext tm: %d", tm);
+                    ledTestCorrect(tm);
+                }
+                break;
+            case 0x11:
+                CONSOLE("ext start");
+                ledTestStart();
+                break;
+            case 0x13:
+                CONSOLE("ext force stop");
+                if (!jumpIsAlt())
+                    ledTestStop();
+                break;
+            
             default:
-                CONSOLE("unknown: sz=%d, cmd=%d, len=%d, state=%d", sz, d.cmd(), d.len(), d.state());
+                CONSOLE("unknown: sz=%d, cmd=0x%02x, len=%d, state=%d", sz, d.cmd(), d.len(), d.state());
         }
     }
 
@@ -157,7 +156,8 @@ public:
     state_t run() {
         auto tm = tmill();
         if (tm-_tmsnd >= 2000) {
-            send(1, tm);
+            wifi_beacon_t r = { _num, tm };
+            wifiSend(0x01, r);
             _tmsnd = tm;
         }
 
@@ -195,4 +195,17 @@ bool wifiDirectStop() {
     _wifi.term();
 
     return true;
+}
+
+bool wifiBcast(const uint8_t *data, uint8_t len) {
+    uint8_t bcaddr[] = { 0xff,0xff,0xff,0xff,0xff,0xff };
+    auto err = esp_now_send(bcaddr, data, len);
+    if (err != ESP_OK)
+        CONSOLE("send fail (len: %d): %s", len, esp_err_to_name(err));
+    return err == ESP_OK;
+}
+
+bool wifiSend(uint16_t cmd) {
+    auto d = BinCmd(cmd);
+    return wifiBcast(d.buf(), d.sz());
 }

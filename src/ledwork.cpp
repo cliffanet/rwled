@@ -15,7 +15,7 @@
 #define NUMPIXELS 60
 #define PINENABLE 14
 
-Adafruit_NeoPixel pixels[] = {
+static Adafruit_NeoPixel pixels[] = {
     Adafruit_NeoPixel(NUMPIXELS, 26, NEO_GRB + NEO_KHZ800), // NEO_KHZ400 / NEO_KHZ800
     Adafruit_NeoPixel(NUMPIXELS, 27, NEO_GRB + NEO_KHZ800),
     Adafruit_NeoPixel(NUMPIXELS, 25, NEO_GRB + NEO_KHZ800),
@@ -187,5 +187,10 @@ void ledOn() {
 }
 
 void ledOff() {
+    for (auto &pix: pixels) {
+        for (uint8_t n=0; n < NUMPIXELS; n++)
+            pix.setPixelColor(n, 0);
+        pix.show();
+    }
     digitalWrite(PINENABLE, LOW);
 }

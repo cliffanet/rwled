@@ -6,6 +6,7 @@
 #include "core/indicator.h"
 #include "core/log.h"
 #include "ledwork.h"
+#include "ledtest.h"
 #include "power.h"
 
 #include "altcalc.h"
@@ -37,7 +38,8 @@ class _jmpWrk : public Wrk {
     );
 
     void clicklng() {
-        ledTgl();
+        //ledTgl();
+        ledTestTgl();
     }
 
     void mode(ac_jmpmode_t prv, ac_jmpmode_t cur) {
@@ -48,14 +50,17 @@ class _jmpWrk : public Wrk {
                 break;
             
             case ACJMP_FREEFALL:
+                ledTestStart();
                 _ind_down.activate();
                 break;
             
             case ACJMP_CANOPY:
+                ledTestStart();
                 _ind_down.activate();
                 break;
                 
             case ACJMP_NONE:
+                ledTestStop();
                 _ind_idle.activate();
                 break;
         }
@@ -89,6 +94,21 @@ public:
 
         return DLY;
     }
+
+    bool iscnp() {
+        return
+            (ac.jmpmode() == ACJMP_CANOPY) && (
+                (ac.alt() < 1000) ||
+                (
+                    (ac.speedavg() < -2) &&
+                    (ac.speedavg() > -30)
+                )
+            );
+    }
+
+    bool isalt() {
+        return ac.jmpmode() > ACJMP_NONE;
+    }
 };
 
 static WrkProc<_jmpWrk> _jmp;
@@ -109,4 +129,12 @@ bool jumpStop() {
     _jmp.term();
 
     return false;
+}
+
+bool jumpIsCnp() {
+    return _jmp.isrun() && _jmp->iscnp();
+}
+
+bool jumpIsAlt() {
+    return _jmp.isrun() && _jmp->isalt();
 }
