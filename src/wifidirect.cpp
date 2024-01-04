@@ -5,6 +5,7 @@
 #include "wifidirect.h"
 #include "core/worker.h"
 #include "core/clock.h"
+#include "core/bindata.h"
 #include "core/log.h"
 #include "ledstream.h"
 #include "wifiserver.h" // wifiNetIfInit();
@@ -22,14 +23,6 @@
  *  Запуск / остановка
  * ------------------------------------------------------------------------------------------- */
 static bool event_loop = false;
-
-void _cb(const uint8_t *mac, const uint8_t *data, int sz) {
-                char s[sz+1];
-                memcpy(s, data, sz);
-                s[sz] = '\0';
-                CONSOLE("recv from: %02x.%02x.%02x.%02x.%02x.%02x: %s",
-                    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], s);
-            }
 
 static bool _init() {
 #define ESP(func)   ESPDO(func, return false)
@@ -65,14 +58,16 @@ static bool _init() {
     ESP(esp_now_init());
     //ESP(esp_now_set_self_role(ESP_NOW_ROLE_COMBO));
 
-    ESP(esp_now_register_recv_cb(_cb));
-
     esp_now_peer_info_t peer = { 0 };
     peer.channel = CONFIG_ESPNOW_CHANNEL;
     peer.ifidx = ESPNOW_WIFI_IF;
     peer.encrypt = false;
     memset(peer.peer_addr, 0xFF, sizeof(peer.peer_addr));
     ESP(esp_now_add_peer(&peer));
+
+    uint8_t mac[6];
+    esp_wifi_get_mac(ESPNOW_WIFI_IF, mac);
+    CONSOLE("mac: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     
     CONSOLE("wifi started");
 
@@ -110,26 +105,49 @@ class _wnowWrk : public Wrk {
     const int8_t _num = lsnum();
     int64_t _tmsnd = 0;
 
-    static void bcast(uint8_t *data, uint8_t len) {
+    static void bcast(const uint8_t *data, uint8_t len) {
         uint8_t bcaddr[] = { 0xff,0xff,0xff,0xff,0xff,0xff };
         auto err = esp_now_send(bcaddr, data, len);
         if (err != ESP_OK)
             CONSOLE("send fail (len: %d): %s", len, esp_err_to_name(err));
     }
 
+    template <typename T>
+    void send(uint16_t cmd, T data) {
+        auto d = BinData(cmd, data);
+        bcast(d.buf(), d.sz());
+    }
+
+    void send(uint16_t cmd) {
+        auto d = BinCmd(cmd);
+        bcast(d.buf(), d.sz());
+    }
+
     static void _recv(const uint8_t *mac, const uint8_t *data, int sz);
     void recv(const uint8_t *mac, const uint8_t *data, int sz) {
-        char s[sz+1];
-        memcpy(s, data, sz);
-        s[sz] = '\0';
-        CONSOLE("from: %02x.%02x.%02x.%02x.%02x.%02x: %s",
-            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], s);
+        CONSOLE("from: %02x.%02x.%02x.%02x.%02x.%02x",
+            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        
+        auto d = BinRecv(data, sz);
+        if (!d) {
+            CONSOLE("data not valid: %d", d.state());
+            return;
+        }
+        switch (d.cmd()) {
+            case 1: {
+                    auto tm = d.data<int64_t>();
+                    CONSOLE("beacon: %lld", tm);
+                }
+                break;
+            
+            default:
+                CONSOLE("unknown: sz=%d, cmd=%d, len=%d, state=%d", sz, d.cmd(), d.len(), d.state());
+        }
     }
 
 public:
     _wnowWrk() {
-        //esp_now_register_recv_cb(
-        //);
+        esp_now_register_recv_cb(_recv);
     }
     ~_wnowWrk() {
         esp_now_unregister_recv_cb();
@@ -139,9 +157,7 @@ public:
     state_t run() {
         auto tm = tmill();
         if (tm-_tmsnd >= 2000) {
-            char s[64];
-            auto l = snprintf_P(s, sizeof(s), PSTR("rwled#%d"), _num);
-            bcast(reinterpret_cast<uint8_t*>(s), l);
+            send(1, tm);
             _tmsnd = tm;
         }
 
