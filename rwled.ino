@@ -5,19 +5,28 @@
 #include "src/core/worker.h"
 #include "src/console.h"
 #include "src/ledstream.h"
-#include "src/wifi.h"
+#include "src/wifiserver.h"
 #include "src/power.h"
+
+#include "src/jump.h"
+#include "src/ledtest.h"
 
 void setup() {
     Serial.setRxBufferSize(4096);
     Serial.begin(115200);
     powerStart(true);
+
+    // временно прямое включение для отладки
+    //pwrinit();
 }
 
 void pwrinit() {
-    lsbegin();
+    CONSOLE("Firmware " FWVER_FILENAME "; Build Date: " __DATE__);
+    //lsbegin();
     //initConsoleReader(Serial);
-    wifiStart();
+    //wifiSrvStart();
+        jumpStart();
+        ledStart();
     
     CONSOLE("init finish");
 }

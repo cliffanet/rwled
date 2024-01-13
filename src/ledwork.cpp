@@ -150,7 +150,7 @@ public:
 };
 
 static WrkProc<_ledWrk> _ledwrk;
-bool ledStart() {
+bool ledStart1() {
     if (_ledwrk.isrun())
         return true;
     if (!lsopened())
@@ -170,7 +170,7 @@ void ledTgl() {
     if (_ledwrk.isrun())
         _ledwrk.term();
     else
-        ledStart();
+        ledStart1();
 }
 
 void ledOn() {

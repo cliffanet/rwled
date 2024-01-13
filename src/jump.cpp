@@ -15,13 +15,11 @@
 class _jmpWrk : public Wrk {
     Adafruit_BMP280 bmp = Adafruit_BMP280(PINBMP);
     AltCalc ac;
-    ac_jmpmode_t _mode = ac.jmpmode();
-    bool ok = false;
+    AltJmp jmp;
+    uint64_t tck;
+    int64_t tm = tmill();
+    bool ok;
 
-    Btn _b = Btn(
-        [](){ powerStart(false); },
-        [this]() { clicklng(); }
-    );
     Indicator _ind_toff = Indicator(
         [this](uint16_t t) { return (t < 3) || ((t > 7) && (t < 10)); },
         [](uint16_t) { return true; },
@@ -37,30 +35,24 @@ class _jmpWrk : public Wrk {
         5000
     );
 
-    void clicklng() {
-        //ledTgl();
-        ledTestTgl();
-    }
-
-    void mode(ac_jmpmode_t prv, ac_jmpmode_t cur) {
-        CONSOLE("jmpmode %d -> %d (%d) %d", prv, cur, ac.jmpcnt(), ac.alt());
-        switch (cur) {
-            case ACJMP_TAKEOFF:
+    void mode(AltJmp::mode_t prv) {
+        CONSOLE("jmpmode %d -> %d (%d) %0.1f", prv, jmp.mode(), jmp.cnt(), ac.alt());
+        switch (jmp.mode()) {
+            case AltJmp::TAKEOFF:
                 _ind_toff.activate();
                 break;
             
-            case ACJMP_FREEFALL:
-                ledTestStart();
+            case AltJmp::FREEFALL:
+                ledByJump();
                 _ind_down.activate();
                 break;
             
-            case ACJMP_CANOPY:
-                ledTestStart();
+            case AltJmp::CANOPY:
+                ledByJump();
                 _ind_down.activate();
                 break;
                 
-            case ACJMP_NONE:
-                ledTestStop();
+            case AltJmp::GROUND:
                 _ind_idle.activate();
                 break;
         }
@@ -68,9 +60,12 @@ class _jmpWrk : public Wrk {
 
 public:
     _jmpWrk() {
-        if (!(ok = bmp.begin())) {   
-            CONSOLE("Could not find a valid BMP280 sensor, check wiring!");
+        if ((ok = bmp.begin())) {
+            float p = bmp.readPressure();
+            CONSOLE("BMP OK! %0.1fpa", p);
         }
+        else
+            CONSOLE("Could not find a valid BMP280 sensor, check wiring!");
     }
 #ifdef FWVER_DEBUG
     ~_jmpWrk() {
@@ -83,31 +78,35 @@ public:
         if (!ok)
             return END;
         
-        static uint32_t tck;
-        
-        uint32_t interval = utm_diff32(tck, tck) / 1000;
-        ac.tick(bmp.readPressure(), interval);
+        if (tmill()-tm <= 90) return DLY;
+        tm = tmill();
 
-        if (_mode != ac.jmpmode())
-            mode(_mode, ac.jmpmode());
-        _mode = ac.jmpmode();
+        auto interval = utm_diff(tck, tck) / 1000;
+        //CONSOLE("interval: %lld", interval);
+        ac.tick(bmp.readPressure(), interval);
+        //CONSOLE("full: %d", ac.interval());
+        auto m = jmp.mode();
+        jmp.tick(ac);
+
+        if (m != jmp.mode())
+            mode(m);
 
         return DLY;
     }
 
     bool iscnp() {
         return
-            (ac.jmpmode() == ACJMP_CANOPY) && (
+            (jmp.mode() == AltJmp::CANOPY) && (
                 (ac.alt() < 1000) ||
                 (
-                    (ac.speedavg() < -2) &&
-                    (ac.speedavg() > -30)
+                    (ac.avg().speed() < -2) &&
+                    (ac.avg().speed() > -35)
                 )
             );
     }
 
     bool isalt() {
-        return ac.jmpmode() > ACJMP_NONE;
+        return jmp.mode() > AltJmp::GROUND;
     }
 };
 

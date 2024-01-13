@@ -369,7 +369,6 @@ public:
         _stop();
         _reset();
         jumpStart();
-        wifiDirectStart();
     }
 };
 static WrkProc<_wsrvWrk> _wifi;

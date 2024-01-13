@@ -7,9 +7,7 @@
 
 #include <stdint.h>
 
-bool ledTestStart();
-bool ledTestStop();
-void ledTestTgl();
-void ledTestCorrect(uint32_t tm);
+void ledStart();
+void ledByJump();
 
 #endif // _ledtest_H

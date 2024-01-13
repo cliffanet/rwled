@@ -7,6 +7,7 @@
 
 #include "../def.h"
 
+void powerOff();
 bool powerStart(bool pwron);
 bool powerStop();
 

@@ -9,6 +9,7 @@
 #include "core/bindata.h"
 
 #include <stdint.h>
+#include <functional>
 
 
 /* ESPNOW can work in both station and softap mode. It is configured in menuconfig. */
@@ -24,9 +25,6 @@
 
 #define CONFIG_ESPNOW_CHANNEL 1
 
-bool wifiDirectStart();
-bool wifiDirectStop();
-
 bool wifiBcast(const uint8_t *data, uint8_t len);
 
 template <typename T>
@@ -40,5 +38,17 @@ typedef struct __attribute__((__packed__)) {
     uint8_t num;
     int64_t tm;
 } wifi_beacon_t;
+
+typedef std::function<void(BinRecv &d)> wifi_rcv_t;
+
+bool wifiRecvAdd(uint16_t cmd, wifi_rcv_t hnd);
+template <typename T>
+bool wifiRecv(uint16_t cmd, std::function<void (const T &d)> hnd) {
+    return wifiRecvAdd(cmd, [hnd](BinRecv &d) {
+        if (hnd != NULL)
+            hnd(d.data<T>());
+    });
+}
+bool wifiRecvClear();
 
 #endif // _wifi_direct_H

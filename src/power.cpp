@@ -9,12 +9,16 @@
 #include "core/log.h"
 
 #include "esp_sleep.h"
+#include "esp32-hal.h"
+#include "esp32-hal-gpio.h"
 
 void pwrinit();
 
 static void pwroff() {
     CONSOLE("goto off");
-    esp_sleep_enable_ext0_wakeup(PWRBTN, 0); //1 = High, 0 = Low
+    // ждём, пока будет отпущена кнопка
+    while (digitalRead(PWRBTN) == LOW) delay(100);
+    esp_sleep_enable_ext0_wakeup(PWRBTN, LOW); //1 = High, 0 = Low
     CONSOLE("Going to deep sleep now");
     esp_deep_sleep_start();
     CONSOLE("This will never be printed");
@@ -44,12 +48,7 @@ class _powerWrk : public Wrk {
         }
 
         _ti++;
-        if (_ti < 3) {
-            _c = 0;
-            return;
-        }
-
-        _ti = -1;
+        _c = 0;
     }
 
 
@@ -71,7 +70,7 @@ public:
             return _ti < -60 ? END : DLY;
         }
 
-        if (_ti >= sizeof(_tm))
+        if (_ti >= sizeof(_tm)/sizeof(_tm[0]))
             // положительные значения _ti
             // означают индекс для массива _tm[]
             return END;
@@ -106,7 +105,12 @@ static WrkProc<_powerWrk> _pwr;
  *  Запуск / остановка
  * ------------------------------------------------------------------------------------------- */
 
-bool powerStart(bool pwron) {
+void powerOff() {
+    powerStart(false);
+}
+
+bool powerStart(bool pwron)
+{
     if (_pwr.isrun())
         return false;
     

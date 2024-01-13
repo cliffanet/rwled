@@ -142,6 +142,7 @@ sub build {
     
     my $flags = flags();
     #$flags .= ' --clean';
+    #$flags .= ' --verbose';
     #print "FLAGS: $flags\n";
     
     my $cmd = "$cli compile --fqbn $fqbn --output-dir $dir/.build $flags $srcdir";# --verbose --log-level trace --clean";

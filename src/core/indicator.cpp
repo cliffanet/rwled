@@ -39,12 +39,19 @@ public:
         return _hnd.empty();
     }
 
-    void add(Indicator *ind, bool tofirst=false) {
+    void add(Indicator *ind) {
         CONSOLE("[%d]: 0x%08x", _hnd.size(), ind);
-        if (tofirst)
-            _hnd.push_front(ind);
-        else
-            _hnd.push_back(ind);
+        _hnd.push_back(ind);
+    }
+    bool chg(Indicator *ind, bool active) {
+        for (auto p = _hnd.begin(); p != _hnd.end(); p++)
+            if (*p == ind) {
+                CONSOLE("found");
+                _hnd.splice( active ? _hnd.end() : _hnd.begin(), _hnd, p );
+                return true;
+            }
+
+        return false;
     }
     bool del(Indicator *ind) {
         CONSOLE("[%d]: 0x%08x", _hnd.size(), ind);
@@ -94,15 +101,15 @@ Indicator::~Indicator() {
 }
 
 bool Indicator::activate() {
-    if (!_ind.isrun() || !_ind->del(this))
+    if (!_ind.isrun())
         return false;
-    _ind->add(this);
+    _ind->chg(this, true);
     return true;
 }
 
 bool Indicator::hide() {
-    if (!_ind.isrun() || !_ind->del(this))
+    if (!_ind.isrun())
         return false;
-    _ind->add(this, true);
+    _ind->chg(this, false);
     return true;
 }

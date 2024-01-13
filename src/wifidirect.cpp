@@ -19,6 +19,7 @@
 
 #include <pgmspace.h>   // PSTR()
 #include <cstring>
+#include <map>
 
 /* ------------------------------------------------------------------------------------------- *
  *  Запуск / остановка
@@ -105,43 +106,26 @@ static bool _stop() {
 class _wnowWrk : public Wrk {
     const int8_t _num = lsnum();
     int64_t _tmsnd = 0;
+    std::map<uint16_t, wifi_rcv_t> _rcv;
 
     static void _recv(const uint8_t *mac, const uint8_t *data, int sz);
     void recv(const uint8_t *mac, const uint8_t *data, int sz) {
-        CONSOLE("from: %02x.%02x.%02x.%02x.%02x.%02x",
-            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        //CONSOLE("from: %02x.%02x.%02x.%02x.%02x.%02x",
+        //    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
         
         auto d = BinRecv(data, sz);
         if (!d) {
             CONSOLE("data not valid: %d", d.state());
             return;
         }
-        switch (d.cmd()) {
-            case 0x01: {
-                    auto r = d.data<wifi_beacon_t>();
-                    CONSOLE("beacon[%d]: %lld", r.num, r.tm);
-                }
-                break;
-            
-            case 0x10: {
-                    auto tm = d.data<int32_t>();
-                    CONSOLE("ext tm: %d", tm);
-                    ledTestCorrect(tm);
-                }
-                break;
-            case 0x11:
-                CONSOLE("ext start");
-                ledTestStart();
-                break;
-            case 0x13:
-                CONSOLE("ext force stop");
-                if (!jumpIsAlt())
-                    ledTestStop();
-                break;
-            
-            default:
-                CONSOLE("unknown: sz=%d, cmd=0x%02x, len=%d, state=%d", sz, d.cmd(), d.len(), d.state());
+
+        auto r = _rcv.find(d.cmd());
+        if (r == _rcv.end()) {
+            CONSOLE("unknown: sz=%d, cmd=0x%02x, len=%d, state=%d", sz, d.cmd(), d.len(), d.state());
+            return;
         }
+
+        r->second(d);
     }
 
 public:
@@ -152,6 +136,41 @@ public:
         esp_now_unregister_recv_cb();
         CONSOLE("(0x%08x) destroy", this);
     }
+
+    bool rcvempty() const {
+        return _rcv.empty();
+    }
+
+    bool add(uint16_t cmd, wifi_rcv_t hnd) {
+        CONSOLE("[%d]: 0x%08x", _rcv.size(), hnd);
+        const auto f = _rcv.find(cmd);
+        if (f != _rcv.end())
+            return false;
+        _rcv[cmd] = hnd;
+        return true;
+    }
+    /*
+    bool add(uint16_t cmd, WiFiRecvBase *r) {
+        CONSOLE("[%d]: 0x%08x", _rcv.size(), r);
+        const auto f = _rcv.find(cmd);
+        if (f != _rcv.end())
+            return f->second == r;
+        _rcv[cmd] = r;
+        return true;
+    }
+    bool del(uint16_t cmd, WiFiRecvBase *r) {
+        CONSOLE("[%d]: 0x%02x / 0x%08x", _rcv.size(), cmd, r);
+        const auto f = _rcv.find(cmd);
+        if (f == _rcv.end())
+            return false;
+        CONSOLE("found");
+        if (f->second != r)
+            return false;
+        CONSOLE("equal");
+        _rcv.erase(f);
+        return true;
+    }
+    */
 
     state_t run() {
         auto tm = tmill();
@@ -176,27 +195,6 @@ void _wnowWrk::_recv(const uint8_t *mac, const uint8_t *data, int sz) {
     _wifi->recv(mac, data, sz);
 }
 
-bool wifiDirectStart() {
-    if (!_init()) {
-        _stop();
-        return false;
-    }
-
-    if (!_wifi.isrun())
-        _wifi = wrkRun<_wnowWrk>();
-    
-    return true;
-}
-
-bool wifiDirectStop() {
-    if (!_wifi.isrun())
-        return false;
-    
-    _wifi.term();
-
-    return true;
-}
-
 bool wifiBcast(const uint8_t *data, uint8_t len) {
     uint8_t bcaddr[] = { 0xff,0xff,0xff,0xff,0xff,0xff };
     auto err = esp_now_send(bcaddr, data, len);
@@ -208,4 +206,20 @@ bool wifiBcast(const uint8_t *data, uint8_t len) {
 bool wifiSend(uint16_t cmd) {
     auto d = BinCmd(cmd);
     return wifiBcast(d.buf(), d.sz());
+}
+
+bool wifiRecvAdd(uint16_t cmd, wifi_rcv_t hnd) {
+    if (!_wifi.isrun()) {
+        if (!_init())
+            return false;
+        _wifi = wrkRun<_wnowWrk>();
+    }
+    return _wifi->add(cmd, hnd);
+}
+
+bool wifiRecvClear() {
+    if (!_wifi.isrun())
+        return false;
+    _wifi.term();
+    return true;
 }

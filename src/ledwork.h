@@ -5,7 +5,7 @@
 #ifndef _ledwork_H
 #define _ledwork_H
 
-bool ledStart();
+bool ledStart1();
 bool ledStop();
 void ledTgl();
 

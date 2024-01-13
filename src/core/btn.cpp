@@ -37,12 +37,19 @@ public:
         return _hnd.empty();
     }
 
-    void add(Btn *b, bool tofirst=false) {
+    void add(Btn *b) {
         CONSOLE("[%d]: 0x%08x", _hnd.size(), b);
-        if (tofirst)
-            _hnd.push_front(b);
-        else
-            _hnd.push_back(b);
+        _hnd.push_back(b);
+    }
+    bool chg(Btn *b, bool active) {
+        for (auto p = _hnd.begin(); p != _hnd.end(); p++)
+            if (*p == b) {
+                CONSOLE("found");
+                _hnd.splice( active ? _hnd.end() : _hnd.begin(), _hnd, p );
+                return true;
+            }
+
+        return false;
     }
     bool del(Btn *b) {
         CONSOLE("[%d]: 0x%08x", _hnd.size(), b);
@@ -126,15 +133,15 @@ Btn::~Btn() {
 }
 
 bool Btn::activate() {
-    if (!_btn.isrun() || !_btn->del(this))
+    if (!_btn.isrun())
         return false;
-    _btn->add(this);
+    _btn->chg(this, true);
     return true;
 }
 
 bool Btn::hide() {
-    if (!_btn.isrun() || !_btn->del(this))
+    if (!_btn.isrun())
         return false;
-    _btn->add(this, true);
+    _btn->chg(this, false);
     return true;
 }
