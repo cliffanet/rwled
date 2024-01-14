@@ -38,11 +38,7 @@ class _ledtestWrk : public Wrk {
         [this]() { wait(); }
     );
     Btn _btn_sync = Btn(
-        [this]() {
-            CONSOLE("to TIMER");
-            _mode = TIMER;
-            _tmr = 0;
-        },
+        [this]() { timer(tmill()-tmsync+7000); },
         [this]() { stop(); }
     );
     Btn _btn_scen = Btn(
@@ -69,8 +65,10 @@ class _ledtestWrk : public Wrk {
 
     int64_t tmsync = 0;
     uint32_t tmscen = 0;
-    uint32_t col = 0, snd = 0;
+    uint32_t col = 0;
     uint16_t _tmr = 0;
+    std::function<void()> _sndhnd = NULL;
+    uint8_t _sndtmr = 0;
     mode_t _mode = WAIT;
 
     void noind() {
@@ -78,39 +76,57 @@ class _ledtestWrk : public Wrk {
         _ind_sync.hide();
         _ind_scen.hide();
     }
+    void snd(std::function<void()> _hnd = NULL) {
+        _sndhnd = _hnd;
+        _sndtmr = 0;
+    }
+
     void wait() {
         CONSOLE("to WAIT");
-        _mode = WAIT;
+        _mode   = WAIT;
+        tmsync  = 0;
+        tmscen  = 0;
+
         _btn_idle.activate();
         noind();
-        _tmr = 0;
-        tmsync = 0;
-        tmscen = 0;
+        snd(NULL);
     }
     void stop() {
         CONSOLE("to STOP");
-        _mode = STOP;
+        _mode   = STOP;
+        tmsync  = 0;
+        tmscen  = 0;
+
         _btn_stop.activate();
         _ind_stop.activate();
-        _tmr = 0;
-        tmsync = 0;
-        tmscen = 0;
+        snd([]() { wifiSend(0x09); });
     }
     void sync(int64_t b = tmill()) {
         CONSOLE("to SYNC (%lld)", b);
-        _mode = SYNC;
+        _mode   = SYNC;
+        tmsync  = b;
+
         _btn_sync.activate();
         _ind_sync.activate();
-        tmsync = b;
-        _tmr = 0;
+        snd([this]() { wifiSend<uint32_t>(0x11, tmill()-tmsync); });
+    }
+    void timer(uint32_t b) {
+        CONSOLE("to TIMER (%d)", b);
+        _mode   = TIMER;
+        tmscen  = b;
+
+        snd([this]() { wifiSend<uint32_t>(0x20, tmscen); });
     }
     void scen(uint32_t b) {
         CONSOLE("to SCEN (%d)", b);
-        _mode = SCEN;
+        _mode   = SCEN;
+        tmscen  = b;
+
         _btn_scen.activate();
         _ind_scen.activate();
-        tmscen = b;
-        _tmr = 0;
+        tmscen > 0 ?
+            snd([this]() { wifiSend<uint32_t>(0x21, tmscen); }) :
+            snd(NULL);
     }
 
 public:
@@ -146,6 +162,24 @@ public:
             CONSOLE("corrected: %lld", tmsync);
         });
 
+        // timer
+        wifiRecv<uint32_t>(0x20, [this](const uint32_t &tm) {
+            if (_mode == SYNC) {
+                timer(tm);
+                return;
+            }
+
+            if (_mode != TIMER)
+                return;
+
+            if (tmscen >= tm)
+            // более поздняя нажатая кнопка заного запускает таймер
+                return;
+            
+            tmscen = tm;
+            CONSOLE("corrected: %d", tmscen);
+        });
+
         // scen
         wifiRecv<uint32_t>(0x21, [this](const uint32_t &tm) {
             if (_mode == SYNC) {
@@ -175,60 +209,44 @@ public:
     }
 
     state_t run() {
-        uint32_t tm = tmill() - tmsync - tmscen;
-        uint32_t tc = tm % 12000; 
-        uint32_t c = 0;
+        // переключение из TIMER в SCEN
+        if ((_mode == TIMER) && (tmill() >= tmsync + tmscen))
+            scen(tmscen);
 
-        switch (_mode) {
-            case STOP:
-                _tmr ++;
-                _tmr %= 5;
-                if (_tmr == 1)
-                    wifiSend(0x09);
-                break;
-            
-            case SYNC:
-                _tmr ++;
-                _tmr %= 5;
-                if (_tmr == 1)
-                    wifiSend<uint32_t>(0x11, tmill()-tmsync);
-                c =
-                    (tc % 6000 < 2000) &&
-                    (tc % 1000 < 500) ?
-                        0x555555 :
-                        0x000000;
-                break;
-
-            case TIMER:
-                _tmr ++;
-                if (_tmr > 5*33) {
-                    _tmr = 0;
-                    scen(tmill()-tmsync);
-                }
-                c =
-                    tc % 200 < 100 ?
-                        0x555555 :
-                        0x000000;
-                break;
-            
-            case SCEN:
-                if (tmscen > 0) {
-                    _tmr ++;
-                    _tmr %= 5;
-                    if (_tmr == 1)
-                        wifiSend<uint32_t>(0x21, tmscen);
-                }
-                c =
-                    tc > 2100 ?
-                        0x00ff00 :
-                    tc % 700 < 300 ?
-                        0xff0000 :
-                        0x000000;
-                break;
+        // Оповещение по wifi о текущем состоянии
+        if (_sndhnd != NULL) {
+            if (_sndtmr == 0)
+                _sndhnd();
+            _sndtmr ++;
+            _sndtmr %= 5;
         }
 
-        if (jumpIsCnp())
-            c = 0x0000ff;
+        // Текущий цвет ленты
+        uint32_t tm = tmill() - tmsync - tmscen;
+        uint32_t tc = tm % 6000;
+
+        uint32_t c =
+            jumpIsCnp() ?
+                0x0000ff :
+
+            (_mode == SYNC) &&
+            (tc % 6000 < 2000) &&
+            (tc % 1000 < 500) ?
+                0x080808 :
+
+            (_mode == TIMER) &&
+            (tc % 500 < 100) ?
+                0x080808 :
+            
+            (_mode == SCEN) &&
+            (tc > 2100) ?
+                0x00ff00 :
+
+            (_mode == SCEN) &&
+            (tc % 700 < 300) ?
+                0xff0000 :
+                0x000000;
+            
         
         if (c != col) {
             for (auto &p: pixels) {
