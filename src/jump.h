@@ -9,7 +9,5 @@
 
 bool jumpStart();
 bool jumpStop();
-bool jumpIsCnp();
-bool jumpIsAlt();
 
 #endif // _jump_H

@@ -225,7 +225,7 @@ private:
 
 #define AC_JMP_GND_COUNT        6
 // Время (мс), которое должен удерживаться state() == ACST_GROUND для перехода в NONE
-#define AC_JMP_GND_TIME         6000
+#define AC_JMP_GND_TIME         12000
 
 class AltJmp {
 public:

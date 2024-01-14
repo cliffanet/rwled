@@ -31,11 +31,13 @@ class _ledtestWrk : public Wrk {
         STOP,
         SYNC,
         TIMER,
-        SCEN
+        SCEN,
+        CANOPY
     } mode_t;
 
     Btn _btn_stop = Btn(
-        [this]() { wait(); }
+        [this]() { wait(); },
+        [this]() { sync(); }
     );
     Btn _btn_sync = Btn(
         [this]() { timer(tmill()-tmsync+7000); },
@@ -44,6 +46,9 @@ class _ledtestWrk : public Wrk {
     Btn _btn_scen = Btn(
         powerOff,
         [this]() { stop(); }
+    );
+    Btn _btn_gnd = Btn(
+        [this]() { wait(); }
     );
     Btn _btn_idle = Btn(
         powerOff,
@@ -128,6 +133,14 @@ class _ledtestWrk : public Wrk {
             snd([this]() { wifiSend<uint32_t>(0x21, tmscen); }) :
             snd(NULL);
     }
+    void canopy() {
+        CONSOLE("to CANOPY");
+        _mode   = CANOPY;
+
+        _btn_idle.activate();
+        noind();
+        snd(NULL);
+    }
 
 public:
     _ledtestWrk() {
@@ -202,10 +215,22 @@ public:
         wifiRecvClear();
     }
 
-    void byjump() {
-        if (_mode == SCEN)
-            return;
-        scen(_mode == SYNC ? tmill()-tmsync : 0);
+    void byjump(led_jmp_t jmp) {
+        switch (jmp) {
+            case LED_FF:
+                if (_mode != SCEN)
+                    scen(_mode == SYNC ? tmill()-tmsync : 0);
+                return;
+            
+            case LED_CNP:
+                canopy();
+                return;
+            
+            case LED_GND:
+                if (_mode == CANOPY)
+                    _btn_gnd.activate();
+                return;
+        }
     }
 
     state_t run() {
@@ -226,7 +251,7 @@ public:
         uint32_t tc = tm % 6000;
 
         uint32_t c =
-            jumpIsCnp() ?
+            _mode == CANOPY ?
                 0x0000ff :
 
             (_mode == SYNC) &&
@@ -261,9 +286,6 @@ public:
 
         return DLY;
     }
-
-    void end() {
-    }
 };
 
 static WrkProc<_ledtestWrk> _ltwrk;
@@ -273,7 +295,7 @@ void ledStart() {
         _ltwrk = wrkRun<_ledtestWrk>();
 }
 
-void ledByJump() {
+void ledByJump(led_jmp_t mode) {
     ledStart();
-    _ltwrk->byjump();
+    _ltwrk->byjump(mode);
 }

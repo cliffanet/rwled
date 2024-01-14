@@ -8,6 +8,12 @@
 #include <stdint.h>
 
 void ledStart();
-void ledByJump();
+
+typedef enum {
+    LED_FF,
+    LED_CNP,
+    LED_GND
+} led_jmp_t;
+void ledByJump(led_jmp_t mode);
 
 #endif // _ledtest_H

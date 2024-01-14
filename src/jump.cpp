@@ -18,7 +18,7 @@ class _jmpWrk : public Wrk {
     AltJmp jmp;
     uint64_t tck;
     int64_t tm = tmill();
-    bool ok;
+    bool ok, iscnp = false;
 
     Indicator _ind_toff = Indicator(
         [this](uint16_t t) { return (t < 3) || ((t > 7) && (t < 10)); },
@@ -43,17 +43,20 @@ class _jmpWrk : public Wrk {
                 break;
             
             case AltJmp::FREEFALL:
-                ledByJump();
+                ledByJump(LED_FF);
                 _ind_down.activate();
+                iscnp = false;
                 break;
             
             case AltJmp::CANOPY:
-                ledByJump();
+                ledByJump(LED_CNP);
                 _ind_down.activate();
                 break;
                 
             case AltJmp::GROUND:
+                ledByJump(LED_GND);
                 _ind_idle.activate();
+                iscnp = false;
                 break;
         }
     }
@@ -90,23 +93,13 @@ public:
 
         if (m != jmp.mode())
             mode(m);
+        
+        if (!iscnp && (m == AltJmp::FREEFALL) && (ac.avg().alt() < 1500)) {
+            iscnp = true;
+            ledByJump(LED_CNP);
+        }
 
         return DLY;
-    }
-
-    bool iscnp() {
-        return
-            (jmp.mode() == AltJmp::CANOPY) && (
-                (ac.alt() < 1000) ||
-                (
-                    (ac.avg().speed() < -2) &&
-                    (ac.avg().speed() > -35)
-                )
-            );
-    }
-
-    bool isalt() {
-        return jmp.mode() > AltJmp::GROUND;
     }
 };
 
@@ -128,12 +121,4 @@ bool jumpStop() {
     _jmp.term();
 
     return false;
-}
-
-bool jumpIsCnp() {
-    return _jmp.isrun() && _jmp->iscnp();
-}
-
-bool jumpIsAlt() {
-    return _jmp.isrun() && _jmp->isalt();
 }
