@@ -28,11 +28,11 @@ static Adafruit_NeoPixel pixels[] = {
 class _ledtestWrk : public Wrk {
     typedef enum {
         WAIT,
+        CANOPY,
         STOP,
         SYNC,
         TIMER,
-        SCEN,
-        CANOPY
+        SCEN
     } mode_t;
 
     Btn _btn_stop = Btn(
