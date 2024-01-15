@@ -3,13 +3,13 @@
 #include "src/core/log.h"
 #include "src/core/clock.h"
 #include "src/core/worker.h"
+#include "src/core/file.h"
 #include "src/console.h"
-#include "src/ledstream.h"
 #include "src/wifiserver.h"
 #include "src/power.h"
 
 #include "src/jump.h"
-#include "src/ledtest.h"
+#include "src/led/work.h"
 
 void setup() {
     Serial.setRxBufferSize(4096);
@@ -22,11 +22,9 @@ void setup() {
 
 void pwrinit() {
     CONSOLE("Firmware " FWVER_FILENAME "; Build Date: " __DATE__);
-    //lsbegin();
+    fileInit();
     //initConsoleReader(Serial);
-    //wifiSrvStart();
-        jumpStart();
-        ledStart();
+    wifiSrvStart();
     
     CONSOLE("init finish");
 }

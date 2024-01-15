@@ -59,18 +59,4 @@ ls_type_t lsget(T &data) {
 }
 bool lsseek(size_t pos);
 
-
-bool lstmp();
-bool lsadd(ls_type_t type, const uint8_t *data, size_t sz);
-inline
-bool lsadd(ls_type_t type) {
-    return lsadd(type, NULL, 0);
-}
-template <typename T>
-bool lsadd(ls_type_t type, const T &data) {
-    return lsadd(type, reinterpret_cast<const uint8_t *>(&data), sizeof(T));
-}
-int  lsfindtm(uint32_t tm);
-bool lsfin();
-
 #endif // _ledstream_H

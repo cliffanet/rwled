@@ -6,11 +6,13 @@
 #include "core/worker.h"
 #include "core/btn.h"
 #include "core/indicator.h"
+#include "core/file.h"
 #include "core/log.h"
-#include "dataparser.h"
-#include "ledstream.h"
 #include "jump.h"
-#include "wifidirect.h"
+#include "led/save.h"
+#include "led/work.h"
+//#include "wifidirect.h"
+#include "ledstream.h" // lsopened() + lsnum()
 
 #include <esp_err.h>
 #include <esp_wifi.h>
@@ -256,9 +258,16 @@ class _wsrvWrk : public Wrk {
 
     DNSServer dns;
     WebServer web;
-    DataBufParser _prs;
+    LedSaverBuf _prs;
     bool fin = false;
     uint32_t _to = 1;
+
+    void close() {
+        fin = true;
+        web.client().stop();
+        web.client().flush();
+        web.close();
+    }
 
     void upload_reply() {
         web.sendHeader("Connection", "close");
@@ -269,9 +278,10 @@ class _wsrvWrk : public Wrk {
         switch (upload.status) {
             case UPLOAD_FILE_START:
                 CONSOLE("Upload: (%d bytes) %s", upload.totalSize, upload.filename.c_str());
-                _prs.clear();
-                _to = 1;
-                lstmp();
+                if (_prs.open())
+                    _to = 1;
+                else
+                    close();
                 break;
             case UPLOAD_FILE_WRITE:
                 CONSOLE("read bytes: %d", upload.currentSize);
@@ -280,12 +290,7 @@ class _wsrvWrk : public Wrk {
                         memcpy(buf, upload.buf, sz);
                         return sz;
                     });
-                    if (!ok) {
-                        fin = true;
-                        web.client().stop();
-                        web.client().flush();
-                        web.close();
-                    }
+                    if (!ok) close();
                 }
                 _to = 1;
                 break;
@@ -305,7 +310,7 @@ class _wsrvWrk : public Wrk {
         strncpy_P(ctype, PSTR("text/html"), sizeof(ctype));
 
         _to = 1;
-        bool ok = lsformat();
+        bool ok = fileFormat();
         web.send_P(200, ctype, ok ? PSTR("Formatted") : PSTR("format ERROR"));
     }
     void web_index() {
@@ -313,8 +318,8 @@ class _wsrvWrk : public Wrk {
         strncpy_P(ctype, PSTR("text/html"), sizeof(ctype));
 
         char s[strlen_P(html_index)+64];
-        auto i = lsinfo();
-        snprintf_P(s, sizeof(s), html_index, i.fsize, i.used, i.total);
+        auto i = fileInfo();
+        snprintf_P(s, sizeof(s), html_index, -1, i.used, i.total);
 
         web.send(200, ctype, (String)s);
     }
@@ -368,7 +373,9 @@ public:
         web.stop();
         _stop();
         _reset();
+
         jumpStart();
+        ledStart();
     }
 };
 static WrkProc<_wsrvWrk> _wifi;

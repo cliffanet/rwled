@@ -2,8 +2,8 @@
     Led test
 */
 
-#ifndef _ledtest_H
-#define _ledtest_H
+#ifndef _led_work_H
+#define _led_work_H
 
 #include <stdint.h>
 
@@ -16,4 +16,4 @@ typedef enum {
 } led_jmp_t;
 void ledByJump(led_jmp_t mode);
 
-#endif // _ledtest_H
+#endif // _led_work_H

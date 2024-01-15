@@ -1,14 +1,14 @@
 
-#include "ledtest.h"
-#include "core/worker.h"
-#include "core/clock.h"
-#include "core/btn.h"
-#include "core/indicator.h"
-#include "core/log.h"
-#include "ledwork.h"
-#include "wifidirect.h"
-#include "jump.h"
-#include "power.h"
+#include "work.h"
+#include "../core/worker.h"
+#include "../core/clock.h"
+#include "../core/btn.h"
+#include "../core/indicator.h"
+#include "../core/log.h"
+#include "../ledwork.h"
+#include "../wifidirect.h"
+#include "../jump.h"
+#include "../power.h"
 
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__

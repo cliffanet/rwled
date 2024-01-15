@@ -1,17 +1,17 @@
 /*
-    Data parser
+    Led stream: saver
 */
 
-#ifndef _dataparser_H
-#define _dataparser_H
+#ifndef _led_save_H
+#define _led_save_H
 
-#include "core/txt.h"
+#include "../core/txt.h"
 
 #include <functional>
 
 #define DATALENMAX      3600000
 
-class DataParser {
+class LedSaver {
     enum {
         HEAD,
         DATA,
@@ -20,12 +20,13 @@ class DataParser {
     } _state;
 
 public:
-    DataParser();
+    LedSaver();
     void clear();
+    bool open();
     bool addstr(const char *s);
 };
 
-class DataBufParser : public DataParser {
+class LedSaverBuf : public LedSaver {
     BufTail _tail;
     uint32_t _ln = 1;
 
@@ -36,4 +37,4 @@ public:
     bool read(size_t sz, read_t hnd);
 };
 
-#endif // _dataparser_H
+#endif // _led_save_H

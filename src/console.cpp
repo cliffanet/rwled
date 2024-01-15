@@ -2,7 +2,7 @@
 #include "console.h"
 #include "core/worker.h"
 #include "core/log.h"
-#include "dataparser.h"
+#include "led/save.h"
 
 #include "core/txt.h"
 
@@ -11,7 +11,7 @@
 
 class _consoleReader : public Wrk {
     Stream &_fh;
-    DataBufParser _prs;
+    LedSaverBuf _prs;
     
     void clear() {
         _prs.clear();
