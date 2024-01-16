@@ -13,6 +13,7 @@
 #include "esp32-hal-gpio.h"
 
 void pwrinit();
+void pwrterm();
 
 static void pwroff() {
     CONSOLE("goto off");
@@ -101,8 +102,10 @@ public:
 
         if (ison)
             pwrinit();
-        else
+        else {
+            pwrterm();
             pwroff();
+        }
     }
 };
 static WrkProc<_powerWrk> _pwr;

@@ -64,14 +64,14 @@ class _ledWrk : public Wrk {
 
 public:
     _ledWrk() {
-        for (auto &p: pixels) p.begin();
+        //for (auto &p: pixels) p.begin();
         beg = tmill();
-        ledOn();
+        //ledOn();
     }
     ~_ledWrk() {
         lsseek(0);
         CONSOLE("(0x%08x) destroy", this);
-        ledOff();
+        //ledOff();
     }
 
     state_t run() {

@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-void ledStart();
+void ledWork();
 
 typedef enum {
     LED_FF,

@@ -9,10 +9,9 @@
 #include "core/file.h"
 #include "core/log.h"
 #include "jump.h"
+#include "led/read.h"
 #include "led/save.h"
 #include "led/work.h"
-//#include "wifidirect.h"
-#include "ledstream.h" // lsopened() + lsnum()
 
 #include <esp_err.h>
 #include <esp_wifi.h>
@@ -20,6 +19,7 @@
 #include <DNSServer.h>
 #include <WebServer.h>
 
+void pwrmain();
 
 /* ------------------------------------------------------------------------------------------- *
  *  netif
@@ -105,11 +105,11 @@ static bool _init() {
     cfg.ap.authmode         = WIFI_AUTH_OPEN;
 
     cfg.ap.ssid_len =
-        lsopened() ?
+        LedRead::opened() ?
             snprintf_P(
                 reinterpret_cast<char*>(cfg.ap.ssid),
                 sizeof(cfg.ap.ssid),
-                PSTR("rwled-n%02d"), lsnum()
+                PSTR("rwled-n%02d"), LedRead::mynum()
             ) :
             snprintf_P(
                 reinterpret_cast<char*>(cfg.ap.ssid),
@@ -248,12 +248,11 @@ const char html_index[] PROGMEM = R"rawliteral(
  *  процессинг
  * ------------------------------------------------------------------------------------------- */
 class _wsrvWrk : public Wrk {
-    const int8_t _num = lsnum();
     const Btn _b = Btn([](){ wifiSrvStop(); });
     const Indicator _ind = Indicator(
-        [this](uint16_t t) { return t < _num * 5 + 20; },
-        [this](uint16_t t) { return (t >= 10) && (t < _num * 5 + 10) & (t % 5 < 2); },
-        ((static_cast<uint16_t>(_num)+1) / 2 + 5) * 1000
+        [this](uint16_t t) { return t < LedRead::mynum() * 5 + 20; },
+        [this](uint16_t t) { return (t >= 10) && (t < LedRead::mynum() * 5 + 10) & (t % 5 < 2); },
+        ((static_cast<uint16_t>(LedRead::mynum())+1) / 2 + 5) * 1000
     );
 
     DNSServer dns;
@@ -319,7 +318,7 @@ class _wsrvWrk : public Wrk {
 
         char s[strlen_P(html_index)+64];
         auto i = fileInfo();
-        snprintf_P(s, sizeof(s), html_index, -1, i.used, i.total);
+        snprintf_P(s, sizeof(s), html_index, LedRead::fsize(), i.used, i.total);
 
         web.send(200, ctype, (String)s);
     }
@@ -374,8 +373,7 @@ public:
         _stop();
         _reset();
 
-        jumpStart();
-        ledStart();
+        pwrmain();
     }
 };
 static WrkProc<_wsrvWrk> _wifi;

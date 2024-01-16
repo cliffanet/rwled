@@ -1,29 +1,13 @@
 
 #include "work.h"
+#include "light.h"
 #include "../core/worker.h"
 #include "../core/clock.h"
 #include "../core/btn.h"
 #include "../core/indicator.h"
 #include "../core/log.h"
-#include "../ledwork.h"
 #include "../wifidirect.h"
-#include "../jump.h"
 #include "../power.h"
-
-#include <Adafruit_NeoPixel.h>
-#ifdef __AVR__
- #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
-#endif
-
- // Popular NeoPixel ring size
-#define NUMPIXELS 5
-
-static Adafruit_NeoPixel pixels[] = {
-    Adafruit_NeoPixel(NUMPIXELS, 26, NEO_GRB + NEO_KHZ800), // NEO_KHZ400 / NEO_KHZ800
-    Adafruit_NeoPixel(NUMPIXELS, 27, NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(NUMPIXELS, 25, NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(NUMPIXELS, 32, NEO_GRB + NEO_KHZ800),
-};
 
 class _ledtestWrk : public Wrk {
     typedef enum {
@@ -145,8 +129,6 @@ class _ledtestWrk : public Wrk {
 public:
     _ledtestWrk() {
         CONSOLE("(0x%08x) create", this);
-        for (auto &p: pixels) p.begin();
-        ledOn();
         noind();
 
         wifiRecv<wifi_beacon_t>(0x01, [](const wifi_beacon_t &d) {
@@ -211,7 +193,6 @@ public:
     }
     ~_ledtestWrk() {
         CONSOLE("(0x%08x) destroy", this);
-        ledOff();
         wifiRecvClear();
     }
 
@@ -250,38 +231,39 @@ public:
         uint32_t tm = tmill() - tmsync - tmscen;
         uint32_t tc = tm % 6000;
 
-        uint32_t c =
-            _mode == CANOPY ?
-                0x0000ff :
+        switch (_mode) {
+            case CANOPY:
+                LedLight::chcolor(
+                    LED_CHAN_ALL,
+                    0x0000ff
+                );
+                break;
 
-            (_mode == SYNC) &&
-            (tc % 6000 < 2000) &&
-            (tc % 1000 < 500) ?
-                0x080808 :
+            case SYNC:
+                LedLight::chcolor(
+                    LED_CHAN_ALL,
+                    (tc % 6000 < 2000) &&
+                    (tc % 1000 < 500) ?
+                        0x080808 : 0x000000
+                );
+                break;
 
-            (_mode == TIMER) &&
-            (tc % 500 < 100) ?
-                0x080808 :
+            case TIMER:
+                LedLight::chcolor(
+                    LED_CHAN_ALL,
+                    (tc % 500 >= 100) ?
+                        0x080808 : 0x000000
+                );
+                break;
+
+            case SCEN:
+                LedLight::scen();
+                break;
             
-            (_mode == SCEN) &&
-            (tc > 2100) ?
-                0x00ff00 :
-
-            (_mode == SCEN) &&
-            (tc % 700 < 300) ?
-                0xff0000 :
-                0x000000;
-            
-        
-        if (c != col) {
-            for (auto &p: pixels) {
-                for (int n = 0; n < NUMPIXELS; n++)
-                    p.setPixelColor(n, c);
-                p.show();
-            }
-            for (auto &p: pixels)
-                p.show();
-            col = c;
+            default:
+                LedLight::chcolor(
+                    LED_CHAN_ALL, 0x000000
+                );
         }
 
         return DLY;
@@ -290,12 +272,12 @@ public:
 
 static WrkProc<_ledtestWrk> _ltwrk;
 
-void ledStart() {
+void ledWork() {
     if (!_ltwrk.isrun())
         _ltwrk = wrkRun<_ledtestWrk>();
 }
 
 void ledByJump(led_jmp_t mode) {
-    ledStart();
+    ledWork();
     _ltwrk->byjump(mode);
 }

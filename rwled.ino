@@ -8,8 +8,10 @@
 #include "src/wifiserver.h"
 #include "src/power.h"
 
-#include "src/jump.h"
+#include "src/led/read.h"
 #include "src/led/work.h"
+#include "src/led/light.h"
+#include "src/jump.h"
 
 void setup() {
     Serial.setRxBufferSize(4096);
@@ -17,16 +19,27 @@ void setup() {
     powerStart(true);
 
     // временно прямое включение для отладки
-    //pwrinit();
+    //pwrmain();
 }
 
 void pwrinit() {
     CONSOLE("Firmware " FWVER_FILENAME "; Build Date: " __DATE__);
     fileInit();
+    LedRead::open();
     //initConsoleReader(Serial);
     wifiSrvStart();
     
     CONSOLE("init finish");
+}
+
+void pwrmain() {
+    ledInit();
+    ledWork();
+    jumpStart();
+}
+
+void pwrterm() {
+    ledTerm();
 }
 
 void loop() {

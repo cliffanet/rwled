@@ -1,6 +1,6 @@
 
 #include "save.h"
-#include "fmt.h"
+#include "read.h"
 #include "../core/file.h"
 #include "../core/log.h"
 
@@ -24,7 +24,7 @@ static inline FILE* open_P(const char *name, char m = 'r') {
     return f;
 }
 
-static bool tmpadd(LedFmt::type_t type, const uint8_t *data, size_t sz) {
+static bool add(LedFmt::type_t type, const uint8_t *data, size_t sz) {
     LedFmt::head_t h;
     h.type  = type;
     h.sz    = sz;
@@ -48,16 +48,16 @@ static bool tmpadd(LedFmt::type_t type, const uint8_t *data, size_t sz) {
     return true;
 }
 
-inline bool tmpadd(LedFmt::type_t type) {
-    return tmpadd(type, NULL, 0);
+inline bool add(LedFmt::type_t type) {
+    return add(type, NULL, 0);
 }
 
 template <typename T>
-static bool tmpadd(LedFmt::type_t type, const T &data) {
-    return tmpadd(type, reinterpret_cast<const uint8_t *>(&data), sizeof(T));
+static bool add(LedFmt::type_t type, const T &data) {
+    return add(type, reinterpret_cast<const uint8_t *>(&data), sizeof(T));
 }
 
-static int tmpfindtm(uint32_t tm) {
+static int findtm(uint32_t tm) {
     auto orig = ftmp != NULL ? ftell(ftmp) : 0;
     CONSOLE("ftmp pos: %d", orig);
     if (ftmp != NULL)
@@ -111,19 +111,18 @@ static int tmpfindtm(uint32_t tm) {
     return pos;
 }
 
-static bool tmpfin() {
+static bool fin() {
     if (ftmp != NULL) {
         fclose(ftmp);
         ftmp = NULL;
         CONSOLE("tmp closed");
     }
-    return true;
-/*
-    lsclose();
+    
+    LedRead::close();
 
     char fsrc[32], fname[32];
     strncpy_P(fsrc, ntmp, sizeof(fsrc));
-    strncpy_P(fname, nstr, sizeof(fname));
+    strncpy_P(fname, LedRead::fname(), sizeof(fname));
     
     struct stat st;
     if (stat(fname, &st) == 0)
@@ -135,8 +134,7 @@ static bool tmpfin() {
         return false;
     }
 
-    return lsopen();
-*/
+    return LedRead::open();
 }
 
 
@@ -194,7 +192,7 @@ bool LedSaver::addstr(const char *s) {
                 //CONSOLE("head: %d", n);
                 _state = DATA;
                 uint8_t num = n;
-                return tmpadd(LedFmt::START, num);
+                return add(LedFmt::START, num);
             }
             else {
                 CONSOLE("ERR: param on HEAD: %s", p);
@@ -212,7 +210,7 @@ bool LedSaver::addstr(const char *s) {
                 }
                 //CONSOLE("tm: %d", n);
                 uint32_t tm = n;
-                return tmpadd(LedFmt::TIME, tm);
+                return add(LedFmt::TIME, tm);
             }
             else
             if (strcmp_P(p, PSTR("ch")) == 0) {
@@ -224,7 +222,7 @@ bool LedSaver::addstr(const char *s) {
                 }
                 //CONSOLE("chan: %d", n);
                 uint8_t num = n;
-                return tmpadd(LedFmt::CHAN, num);
+                return add(LedFmt::CHAN, num);
             }
             else
             if (strcmp_P(p, PSTR("led")) == 0) {
@@ -242,7 +240,7 @@ bool LedSaver::addstr(const char *s) {
                 }
                 LedFmt::col_t led = { n, col };
                 //CONSOLE("led: %d, %08X", n, led.col);
-                return tmpadd(LedFmt::LED, led);
+                return add(LedFmt::LED, led);
             }
             else
             if (strcmp_P(p, PSTR("LOOP")) == 0) {
@@ -260,14 +258,14 @@ bool LedSaver::addstr(const char *s) {
                 }
                 CONSOLE("LOOP: %d, %d", beg, len);
                 _state = FIN;
-                auto pos = tmpfindtm(beg);
+                auto pos = findtm(beg);
                 CONSOLE("finded pos: %d", pos);
                 if (pos < 0) {
                     CONSOLE("ERR: LOOP fpos");
                     return false;
                 }
                 LedFmt::loop_t lp = { beg, len, pos };
-                return tmpadd(LedFmt::LOOP, lp);
+                return add(LedFmt::LOOP, lp);
             }
             else
             if (strcmp_P(p, PSTR("END.")) == 0) {
@@ -277,7 +275,7 @@ bool LedSaver::addstr(const char *s) {
                 }
                 _state = END;
                 CONSOLE("END whithout LOOP");
-                return tmpadd(LedFmt::END) && tmpfin();
+                return add(LedFmt::END) && fin();
             }
             else {
                 CONSOLE("ERR: param on DATA: %s", p);
@@ -293,7 +291,7 @@ bool LedSaver::addstr(const char *s) {
                 }
                 _state = END;
                 CONSOLE("END");
-                return tmpadd(LedFmt::END) && tmpfin();
+                return add(LedFmt::END) && fin();
             }
             else {
                 CONSOLE("ERR: param on FIN: %s", p);

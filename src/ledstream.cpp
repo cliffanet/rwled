@@ -158,7 +158,7 @@ bool lsopened() {
     return fstr != NULL;
 }
 
-bool _bufread(uint8_t *data, size_t sz) {
+static bool _bufread(uint8_t *data, size_t sz) {
     if (sz > bl) {
         if (fstr == NULL) {
             CONSOLE("led stream not opened");
