@@ -6,9 +6,9 @@
 #include "core/worker.h"
 #include "core/clock.h"
 #include "core/log.h"
-#include "ledstream.h"
 #include "jump.h"
 #include "wifiserver.h" // wifiNetIfInit();
+#include "led/read.h"
 
 #include <esp_err.h>
 #include <esp_wifi.h>
@@ -103,7 +103,6 @@ static bool _stop() {
  *  процессинг
  * ------------------------------------------------------------------------------------------- */
 class _wnowWrk : public Wrk {
-    const int8_t _num = lsnum();
     int64_t _tmsnd = 0;
     std::map<uint16_t, wifi_rcv_t> _rcv;
 
@@ -174,7 +173,7 @@ public:
     state_t run() {
         auto tm = tmill();
         if (tm-_tmsnd >= 2000) {
-            wifi_beacon_t r = { _num, tm };
+            wifi_beacon_t r = { LedRead::mynum(), tm };
             wifiSend(0x01, r);
             _tmsnd = tm;
         }

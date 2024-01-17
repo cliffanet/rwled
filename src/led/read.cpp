@@ -38,14 +38,17 @@ bool LedRead::open()
     
     fstr = open_P(nstr);
     if (fstr == NULL) return false;
-
-    if (get(_mynum) != LedFmt::START) {
+    
+    auto r = LedRead::get();
+    if (r.type == LedFmt::START) {
+        _mynum = r.d<uint8_t>();
+        CONSOLE("mynum: %d", _mynum);
+    }
+    else {
         CONSOLE("file format fail");
         _mynum = 0;
         seek(0);
     }
-    else
-        CONSOLE("mynum: %d", _mynum);
     
     return fstr != NULL;
 }
@@ -81,6 +84,26 @@ uint8_t LedRead::mynum() {
 bool LedRead::opened() {
     return fstr != NULL;
 }
+
+
+/************************************************************/
+
+LedRead::Data::Data(LedFmt::type_t type, const uint8_t *d, size_t sz) :
+    type(type),
+    _d(d),
+    _s(sz)
+{ }
+
+void LedRead::Data::data(uint8_t *buf, size_t sz) {
+    if (sz > _s) {
+        memcpy(buf, _d, _s);
+        memset(buf+_s, 0, sz-_s);
+    }
+    else
+        memcpy(buf, _d, sz);
+}
+
+/************************************************************/
 
 static bool _bufread(uint8_t *data, size_t sz) {
     if (sz > bl) {
@@ -118,29 +141,23 @@ static bool _bufread(uint8_t *data, size_t sz) {
     return true;
 }
 
-LedFmt::type_t LedRead::get(uint8_t *data, size_t sz) {
+LedRead::Data LedRead::get() {
     LedFmt::head_t h;
     if (!_bufread(reinterpret_cast<uint8_t *>(&h), sizeof(h))) {
         CONSOLE("[%d]: hdr read", ftell(fstr));
-        return LedFmt::FAIL;
+        return Data(LedFmt::FAIL, buf+bc, 0);
     }
     if (h.m != LEDFMT_HDR) {
         CONSOLE("[%d]: hdr fail", ftell(fstr));
-        return LedFmt::FAIL;
+        return Data(LedFmt::FAIL, buf+bc, 0);
     }
 
-    size_t l = h.sz < sz ? h.sz : sz;
-    if (l < 0) l = 0;
-    if ((l > 0) && !_bufread(data, l)) {
+    if (!_bufread(NULL, h.sz)) {
         CONSOLE("[%d]: data read", ftell(fstr));
-        return LedFmt::FAIL;
+        return Data(LedFmt::FAIL, buf+bc, 0);
     }
-    if ((h.sz > l) && !_bufread(NULL, h.sz-l)) {
-        CONSOLE("[%d]: skip empty", ftell(fstr));
-        return LedFmt::FAIL;
-    }
-    
-    return static_cast<LedFmt::type_t>(h.type);
+
+    return Data(static_cast<LedFmt::type_t>(h.type), buf+bc-h.sz, h.sz);
 }
 
 bool LedRead::seek(size_t pos) {

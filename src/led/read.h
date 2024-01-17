@@ -17,11 +17,32 @@ namespace LedRead {
     uint8_t mynum();
 
     bool opened();
-    LedFmt::type_t get(uint8_t *data, size_t sz);
-    template <typename T>
-    LedFmt::type_t get(T &data) {
-        return get(reinterpret_cast<uint8_t *>(&data), sizeof(T));
-    }
+
+    class Data {
+        const uint8_t *_d;
+        size_t _s;
+        public:
+            const LedFmt::type_t type;
+
+            Data(LedFmt::type_t type, const uint8_t *d, size_t sz);
+            uint8_t sz()    const { return _s; }
+            
+            void data(uint8_t *buf, size_t sz);
+            template <typename T>
+            T d() {
+                // Можно было бы вернуть просто: const T&
+                // сделав простой возврат: *reinterpret_cast<uint8_t*>(_b+4)
+                // Но тут есть большой риск, что придут данные, короче, чем T,
+                // и тогда будем иметь неприятные вылеты. Поэтому лучше лишний
+                // раз скопировать данные и обнулить хвост при необходимости.
+                T d;
+                data(reinterpret_cast<uint8_t*>(&d), sizeof(T));
+                return d;
+            }
+    };
+
+    
+    Data get();
     bool seek(size_t pos);
 }
 

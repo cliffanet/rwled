@@ -5,7 +5,6 @@
 #include "core/btn.h"
 #include "core/indicator.h"
 #include "core/log.h"
-#include "ledwork.h"
 #include "led/work.h"
 #include "power.h"
 
