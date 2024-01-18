@@ -233,26 +233,38 @@ public:
 
         switch (_mode) {
             case CANOPY:
+                LedLight::chcolor(LED_CHANA, 0xff0000);
+                LedLight::chcolor(LED_CHANB, 0x00ff00);
                 LedLight::chcolor(
-                    LED_CHAN_ALL,
-                    0x0000ff
+                    LED_CHANC | LED_CHAND,
+                    (tm % 2000 > 300) &&
+                    ((tm-500) % 2000 > 300) ?
+                        0xFFFFFF : 0x000000
                 );
                 break;
 
             case SYNC:
                 LedLight::chcolor(
-                    LED_CHAN_ALL,
-                    (tc % 6000 < 2000) &&
-                    (tc % 1000 < 500) ?
-                        0x080808 : 0x000000
+                    LED_CHANA | LED_CHANB,
+                    (tm % 6000 < 2000) &&
+                    (tm % 1000 < 500) ?
+                        0x070707 : 0x000000
+                );
+                LedLight::chcolor(
+                    LED_CHANC | LED_CHAND,
+                    0x070707
                 );
                 break;
 
             case TIMER:
                 LedLight::chcolor(
-                    LED_CHAN_ALL,
-                    (tc % 500 >= 100) ?
+                    LED_CHANA | LED_CHANB,
+                    (tm % 500 >= 100) ?
                         0x080808 : 0x000000
+                );
+                LedLight::chcolor(
+                    LED_CHANC | LED_CHAND,
+                    0x070707
                 );
                 break;
 

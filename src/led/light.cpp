@@ -175,8 +175,8 @@ void LedLight::scen() {
 
 void LedLight::chcolor(uint8_t chan, uint32_t col) {
     uint8_t ch = 1;
-    static uint8_t colall[4] = { 0, 0, 0, 0 };
-    uint8_t *c = colall;
+    static uint32_t colall[4] = { 0, 0, 0, 0 };
+    uint32_t *c = colall;
 
     if (_scenhnd != NULL) {
         vTaskDelete( _scenhnd );
