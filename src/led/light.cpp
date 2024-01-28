@@ -81,6 +81,7 @@ static void proc_scen( void * param ) {
     auto pixall = reinterpret_cast<Adafruit_NeoPixel *>(param);
     auto pix = pixall;
     for (uint8_t x = 0; x < 4; x++, pix++) {
+        pix->clear();
         for (uint8_t n=0; n < NUMPIXELS; n++)
             pix->setPixelColor(n, 0x000000);
         pix->show();
@@ -107,6 +108,7 @@ static void proc_scen( void * param ) {
                     break;
                 
                 case LedFmt::TIME:
+                    pixredraw();
                     tm = r.d<uint32_t>();
                     //CONSOLE("tm: %d", tm);
                     break;
@@ -126,6 +128,7 @@ static void proc_scen( void * param ) {
                             pix->setPixelColor(c.num-1, acolor(c.color));// & 0x00ffffff);
                             chg = true;
                         }
+                        //CONSOLE("color: %d = 0x%08x", c.num, c.color);
                     }
                     break;
                 
@@ -148,6 +151,7 @@ static void proc_scen( void * param ) {
                 
                 case LedFmt::END:
                     CONSOLE("end");
+                    pixredraw();
                     goto theEnd;
             }
         }
@@ -178,7 +182,8 @@ void LedLight::chcolor(uint8_t chan, uint32_t col) {
     static uint32_t colall[4] = { 0, 0, 0, 0 };
     uint32_t *c = colall;
 
-    if (_scenhnd != NULL) {
+    bool isscen = _scenhnd != NULL;
+    if (isscen) {
         vTaskDelete( _scenhnd );
         _scenhnd = NULL;
     }
@@ -191,6 +196,11 @@ void LedLight::chcolor(uint8_t chan, uint32_t col) {
         }
         ch = ch << 1;
         c ++;
+    }
+
+    if (isscen) {
+        LedRead::seek(0);
+        LedRead::get(); // чтобы прочитался первый пре-буффер
     }
 
     ch = 1;

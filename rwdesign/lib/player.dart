@@ -70,35 +70,31 @@ class Player {
 
     Timer ?_play;
     bool get isplay => _play != null;
-    void _pnxt() {
-        _play = Timer(
-            Duration(milliseconds: 8),
-            () {
-                if (_tm >= _max) {
-                    final loop = ScenarioLoop();
-                    if ((loop >= 0) && (loop < _max))
-                        _tm = loop;
-                    else {
-                        stop();
-                        return;
-                    }
-                }
-                else {
-                    _tm += 10;
-                    if (_tm > _max)
-                        _tm = _max;
-                }
-                _pnxt();
-                ScenarioMove(_tm);
-                notify.value++;
-            }
-        );
-    }
     void play() {
         if (isplay) return;
         if (_tm >= _max)
             _tm = 0;
-        _pnxt();
+        int beg = DateTime.now().millisecondsSinceEpoch;
+        
+        _play = Timer.periodic(
+            Duration(milliseconds: 10),
+            (_) {
+                _tm = DateTime.now().millisecondsSinceEpoch - beg;
+                while (_tm >= _max) {
+                    final loop = ScenarioLoop();
+                    if ((loop >= 0) && (loop < _max)) {
+                        beg += _max-loop;
+                        _tm = DateTime.now().millisecondsSinceEpoch - beg;
+                    } else {
+                        _tm = _max;
+                        stop();
+                    }
+                }
+                ScenarioMove(_tm);
+                notify.value++;
+            }
+        );
+
         notify.value++;
     }
     void stop() {
