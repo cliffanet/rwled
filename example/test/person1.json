@@ -1,0 +1,11 @@
+{
+    "num": 1,
+    "draw": "person",
+
+    "leds": "person",
+
+    "move": [
+        {               "x": 100,   "y": 150, "r": 0 },
+        { "tm": 24000,  "all": null }
+    ]
+}
