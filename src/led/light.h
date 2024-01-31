@@ -19,6 +19,7 @@ void ledTerm();
 
 namespace LedLight {
     void scen();
+    bool isscen();
     void chcolor(uint8_t chan, uint32_t col);
 };
 

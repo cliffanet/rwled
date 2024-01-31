@@ -116,6 +116,8 @@ class _ledtestWrk : public Wrk {
         tmscen > 0 ?
             snd([this]() { wifiSend<uint32_t>(0x21, tmscen); }) :
             snd(NULL);
+        
+        LedLight::scen();
     }
     void canopy() {
         CONSOLE("to CANOPY");
@@ -269,7 +271,8 @@ public:
                 break;
 
             case SCEN:
-                LedLight::scen();
+                if (!LedLight::isscen())
+                    canopy();
                 break;
             
             default:

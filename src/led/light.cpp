@@ -58,17 +58,23 @@ void ledTerm() {
 /* ------------------------------------------------ */
 
 /* ------------------------------------------------ */
-static inline uint32_t acolel(uint32_t acol, uint32_t mask, uint8_t a) {
-    return ((acol & mask) * 255 / a) & mask;
+static inline uint32_t acolel(uint32_t acol, uint8_t bit, uint8_t a) {
+    return ((((acol >> bit) & 0xff) * a / 0xff) & 0xff) << bit;
 }
 static uint32_t acolor(uint32_t acol) {
     uint8_t a = (acol >> 24) & 0xff;
     if (a == 0xff)
         return acol & 0x00ffffff;
     return
-        acolel(acol, 0x00ff0000, a) &
-        acolel(acol, 0x0000ff00, a) &
-        acolel(acol, 0x000000ff, a);
+        acolel(acol, 16, a) |
+        acolel(acol,  8, a) |
+        acolel(acol,  0, a);
+}
+
+
+static void scenreset() {
+    LedRead::seek(0);
+    LedRead::get(); // чтобы прочитался первый пре-буффер
 }
 
 static TaskHandle_t _scenhnd = NULL;
@@ -158,12 +164,20 @@ static void proc_scen( void * param ) {
     }
 
     theEnd:
+    scenreset();
 
     vTaskDelete( NULL );
 }
 
-void LedLight::scen() {
-    if (_scenhnd == NULL)
+static bool runscen(bool run) {
+    char nam[16];
+    strncpy_P(nam, PSTR("scen"), sizeof(nam));
+
+    _scenhnd = xTaskGetHandle(nam);
+
+    bool isscen = _scenhnd != NULL;
+
+    if (!isscen && run)
         xTaskCreateUniversal(//PinnedToCore(
             proc_scen,      /* Task function. */
             "scen",         /* name of task. */
@@ -173,6 +187,16 @@ void LedLight::scen() {
             &_scenhnd,      /* Task handle to keep track of created task */
             1               /* pin task to core 0 */
         );
+
+    return isscen;
+}
+
+void LedLight::scen() {
+    runscen(true);
+}
+
+bool LedLight::isscen() {
+    return runscen(false);
 }
 
 /* ------------------------------------------------ */
@@ -182,7 +206,7 @@ void LedLight::chcolor(uint8_t chan, uint32_t col) {
     static uint32_t colall[4] = { 0, 0, 0, 0 };
     uint32_t *c = colall;
 
-    bool isscen = _scenhnd != NULL;
+    bool isscen = runscen(false);
     if (isscen) {
         vTaskDelete( _scenhnd );
         _scenhnd = NULL;
@@ -198,10 +222,8 @@ void LedLight::chcolor(uint8_t chan, uint32_t col) {
         c ++;
     }
 
-    if (isscen) {
-        LedRead::seek(0);
-        LedRead::get(); // чтобы прочитался первый пре-буффер
-    }
+    if (isscen)
+        scenreset();
 
     ch = 1;
     c = colall;

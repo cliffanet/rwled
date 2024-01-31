@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:rwdesign/elemfunc/file.dart';
 import 'package:rwdesign/elemfunc/move.dart';
+import 'dart:developer' as developer;
 
 enum LightMode {
     Hidden, Figure, Layer, Led
@@ -136,7 +137,10 @@ Future<bool> PlayerSave() async {
     if (dir == null)
         return false;
 
+    final tmlen = ScenarioMaxLen();
+
     for (final s in ScenarioLed()) {
+        developer.log("scenario: ${s.num}");
         final f = File(dir + '/p' + s.num.toString().padLeft(3,'0') + '.led');
         final txt = await f.openWrite();
 
@@ -144,7 +148,7 @@ Future<bool> PlayerSave() async {
 
         Map<int,List<int>> val = {};
 
-        for (int tm = 0; tm <= s.move.tmlen; tm += 40) {
+        for (int tm = 0; tm <= tmlen; tm += 40) {
             s.move.tm = tm;
             final chanall = s.leds.info(tm,
                 s.move.val(ParType.x),
@@ -177,10 +181,11 @@ Future<bool> PlayerSave() async {
             }
         }
 
-        final max = Player().max;
         final loop = ScenarioLoop();
-        if ((loop >= 0) && (loop < max))
-            txt.writeln("LOOP=$loop,$max");
+        if ((loop >= 0) && (loop < tmlen))
+            txt.writeln("LOOP=$loop,$tmlen");
+        else
+            txt.writeln("tm=${tmlen}");
 
         txt.writeln("END.");
 
