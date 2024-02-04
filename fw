@@ -41,6 +41,7 @@ my %cmd = (
     compile         => \&compile,
     compileupload   => \&compileupload,
     showport        => \&showport,
+    reset           => \&reset,
 );
     
     my $cmd = shift @ARGV;
@@ -175,6 +176,7 @@ sub burn {
     print "=======================================================\n";
     
     my $cmd = "$cli upload --fqbn $fqbn -i $dir/${fname}.bin -p $port -t";
+    $cmd .= ' --verbose';
     runcmd($cmd) || return;
     
     1;
@@ -245,6 +247,21 @@ sub compileupload {
 sub showport {
     my ($port) = argver('showport', @_);
 
+    showtty($port) || return;
+    1;
+}
+
+sub reset {
+    my ($port) = argver('showport', @_);
+
+    my @cmd =   '/Users/cliff/Library/Arduino15/packages/esp32/tools/esptool_py/4.5/esptool';
+    push @cmd,  '-p', $port;
+    push @cmd,  '--after hard_reset';
+    push @cmd,  'read_mac';
+    my $cmd = join ' ', @cmd;
+
+    print "=== $cmd\n";
+    system($cmd) && return;
     showtty($port) || return;
     1;
 }
