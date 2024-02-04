@@ -78,6 +78,8 @@ static void scenreset() {
 }
 
 static TaskHandle_t _scenhnd = NULL;
+static SemaphoreHandle_t _mutex = xSemaphoreCreateMutex();
+
 static void proc_scen( void * param ) {
     auto beg = tmill();
     uint32_t tm = 0;
@@ -86,19 +88,24 @@ static void proc_scen( void * param ) {
 
     auto pixall = reinterpret_cast<Adafruit_NeoPixel *>(param);
     auto pix = pixall;
+
     for (uint8_t x = 0; x < 4; x++, pix++) {
+        xSemaphoreTake(_mutex, portMAX_DELAY);
         pix->clear();
         for (uint8_t n=0; n < NUMPIXELS; n++)
             pix->setPixelColor(n, 0x000000);
         pix->show();
+        xSemaphoreGive(_mutex);
     }
     pix = NULL;
 
     bool chg = false;
 #define pixredraw() \
         if (chg || (pix != NULL)) { \
+            xSemaphoreTake(_mutex, portMAX_DELAY); \
             pix->show(); \
             pix->show(); \
+            xSemaphoreGive(_mutex); \
             chg = false; \
         }
 
@@ -131,7 +138,9 @@ static void proc_scen( void * param ) {
                 case LedFmt::LED: {
                         auto c = r.d<LedFmt::col_t>();
                         if ((pix != NULL) && (c.num > 0) && (c.num <= NUMPIXELS)) {
-                            pix->setPixelColor(c.num-1, acolor(c.color));// & 0x00ffffff);
+                            xSemaphoreTake(_mutex, portMAX_DELAY);
+                            pix->setPixelColor(c.num-1, acolor(c.color));
+                            xSemaphoreGive(_mutex);
                             chg = true;
                         }
                         //CONSOLE("color: %d = 0x%08x", c.num, c.color);
@@ -164,6 +173,7 @@ static void proc_scen( void * param ) {
     }
 
     theEnd:
+    CONSOLE("finish");
     scenreset();
 
     vTaskDelete( NULL );
@@ -208,8 +218,10 @@ void LedLight::chcolor(uint8_t chan, uint32_t col) {
 
     bool isscen = runscen(false);
     if (isscen) {
+        xSemaphoreTake(_mutex, portMAX_DELAY);
         vTaskDelete( _scenhnd );
         _scenhnd = NULL;
+        xSemaphoreGive(_mutex);
     }
 
     for (auto &p: pixels) {
