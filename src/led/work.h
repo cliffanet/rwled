@@ -11,6 +11,7 @@ void ledWork();
 
 typedef enum {
     LED_FF,
+    LED_FFEND,
     LED_CNP,
     LED_GND
 } led_jmp_t;

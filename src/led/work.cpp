@@ -37,6 +37,7 @@ class _ledtestWrk : public Wrk {
     Btn _btn_idle = Btn(
         powerOff,
         [this]() { sync(); }
+        //[this]() { _mode == WAIT ? canopy() : wait(); } // для тестирования
     );
 
     Indicator _ind_stop = Indicator(
@@ -205,7 +206,7 @@ public:
                     scen(_mode == SYNC ? tmill()-tmsync : 0);
                 return;
             
-            case LED_CNP:
+            case LED_FFEND:
                 canopy();
                 return;
             
@@ -235,38 +236,38 @@ public:
 
         switch (_mode) {
             case CANOPY:
-                LedLight::chcolor(LED_CHANA, 0xff0000);
-                LedLight::chcolor(LED_CHANB, 0x00ff00);
                 LedLight::chcolor(
-                    LED_CHANC | LED_CHAND,
+                    LED_CHANA | LED_CHANB,
                     (tm % 2000 > 300) &&
                     ((tm-500) % 2000 > 300) ?
                         0xFFFFFF : 0x000000
                 );
+                LedLight::chcolor(LED_CHANC, 0x00ff00);
+                LedLight::chcolor(LED_CHAND, 0xff0000);
                 break;
 
             case SYNC:
                 LedLight::chcolor(
                     LED_CHANA | LED_CHANB,
-                    (tm % 6000 < 2000) &&
-                    (tm % 1000 < 500) ?
-                        0x070707 : 0x000000
+                    0x070707
                 );
                 LedLight::chcolor(
                     LED_CHANC | LED_CHAND,
-                    0x070707
+                    (tm % 6000 < 2000) &&
+                    (tm % 1000 < 500) ?
+                        0x070707 : 0x000000
                 );
                 break;
 
             case TIMER:
                 LedLight::chcolor(
                     LED_CHANA | LED_CHANB,
-                    (tm % 500 >= 100) ?
-                        0x080808 : 0x000000
+                    0x070707
                 );
                 LedLight::chcolor(
                     LED_CHANC | LED_CHAND,
-                    0x070707
+                    (tm % 500 >= 100) ?
+                        0x080808 : 0x000000
                 );
                 break;
 

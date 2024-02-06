@@ -93,9 +93,9 @@ public:
         if (m != jmp.mode())
             mode(m);
         
-        if (!iscnp && (m == AltJmp::FREEFALL) && (ac.avg().alt() < 1500)) {
+        if (!iscnp && ((m == AltJmp::FREEFALL) || (m == AltJmp::CANOPY)) && (ac.avg().alt() < 1500)) {
             iscnp = true;
-            ledByJump(LED_CNP);
+            ledByJump(LED_FFEND);
         }
 
         return DLY;
