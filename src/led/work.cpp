@@ -30,6 +30,7 @@ class _ledtestWrk : public Wrk {
     Btn _btn_scen = Btn(
         powerOff,
         [this]() { stop(); }
+        //[this]() { canopy(); } // для тестирования
     );
     Btn _btn_gnd = Btn(
         [this]() { wait(); }
