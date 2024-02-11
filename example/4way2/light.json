@@ -1,0 +1,82 @@
+{
+    "loop": 4000,
+    "light":[
+        {
+            "tm": 34000,
+            "fig": "circle",
+            "beg": { "x": 290, "y": 300, "r": 500, "color": "FFFFFFFF" }
+        },
+        {
+            "start": 4500,
+            "tm": 1000,
+            "fig": "circle",
+            "beg": { "x": 200, "y":  50, "r": 30, "color": "FFFF0000" },
+            "end": { "x": 200, "y": 320, "r": 100 },
+            "wait": 2000
+        },
+        {
+            "start": 4500,
+            "tm": 1000,
+            "fig": "circle",
+            "beg": { "x": 350, "y": 630, "r": 30, "color": "FFFF0000" },
+            "end": { "x": 350, "y": 300, "r": 100 },
+            "wait": 2000
+        },
+        {
+            "start": 6100,
+            "tm": 1500,
+            "fig": "circle",
+            "beg": { "x": 260, "y": 300, "r": 10, "color": "FF00FF00" },
+            "end": { "r": 250 },
+            "wait": 5000
+        },
+        {
+            "start": 8600,
+            "tm": 800,
+            "fig": "circle",
+            "beg": { "x": 420, "y": 550, "r": 10, "color": "FFFFFF00" },
+            "end": { "x": 260, "y": 300, "r": 250 },
+            "wait": 300
+        },
+        {
+            "start": 9700,
+            "tm": 800,
+            "fig": "circle",
+            "beg": { "x": 260, "y": 300, "r": 250, "color": "FFFFFF00" },
+            "end": { "x": 420, "y": 550, "r": 10 },
+            "wait": 300
+        },
+        {
+            "start": 10700,
+            "tm": 800,
+            "fig": "circle",
+            "beg": { "x": 420, "y": 550, "r": 10, "color": "FFFFFF00" },
+            "end": { "x": 260, "y": 300, "r": 250 },
+            "wait": 3000
+        },
+        {
+            "start": 13000,
+            "tm": 1000,
+            "fig": "sector",
+            "beg": { "x": 260, "y": 300, "r": 250, "color": "FF00FFFF", "ang1": 0, "ang2": 1 },
+            "end": { "ang2": 360 },
+            "wait": 3000
+        },
+        {
+            "start": 14000,
+            "tm": 1000,
+            "fig": "sector",
+            "beg": { "x": 260, "y": 300, "r": 250, "color": "FFF0000", "ang1": 181, "ang2": 180 },
+            "end": { "ang1": 360, "ang2": 0 },
+            "wait": 3000
+        },
+        {
+            "start": 15600,
+            "tm": 1500,
+            "fig": "sector",
+            "beg": { "x": 260, "y": 300, "r": 250, "color": "FFFFFFFF", "ang1": 0, "ang2": 1 },
+            "end": { "ang2": -360 },
+            "wait": 3000
+        }
+    ]
+}

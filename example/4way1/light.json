@@ -1,0 +1,67 @@
+{
+    "loop": 6750,
+    "light":[
+        {
+            "tm": 34000,
+            "fig": "circle",
+            "beg": { "x": 290, "y": 300, "r": 500, "color": "FFFFFFFF" }
+        },
+        {
+            "start": 4500,
+            "tm": 5000,
+            "fig": "circle",
+            "beg": { "x": 290, "y": 300, "r": 300, "color": "FFFF0000" }
+        },
+        {
+            "start": 6700,
+            "tm": 4000,
+            "fig": "circle",
+            "beg": { "x": 290, "y": 300, "r": 300, "color": "FF00FF00" }
+        },
+        {
+            "start": 7000,
+            "tm": 2500,
+            "fig": "sector",
+            "beg": { "x": 290, "y": 300, "r": 300, "color": "FFFFFF00", "ang1": 0, "ang2": 1 },
+            "end": { "ang2": 360 },
+            "wait": 5000
+        },
+        {
+            "start": 9700,
+            "tm": 6000,
+            "fig": "circle",
+            "beg": { "x": 290, "y": 300, "r": 300, "color": "FFFF0000" }
+        },
+        {
+            "start": 9700,
+            "tm": 4000,
+            "fig": "circle",
+            "beg": { "x": 290, "y": 300, "r": 300, "color": "FF0000FF" },
+            "end": { "r": 0 }
+        },
+        {
+            "start": 13400,
+            "tm": 2000,
+            "fig": "circle",
+            "beg": { "x": 290, "y": 300, "r": 0, "color": "FF00FF00" },
+            "end": { "r": 300 },
+            "wait": 5000
+        },
+        {
+            "start": 14500,
+            "tm": 2000,
+            "fig": "circle",
+            "beg": { "x": 290, "y": 300, "r": 0, "color": "FF00FFFF" },
+            "end": { "r": 300 },
+            "wait": 5000
+        },
+        {
+            "start": 17500,
+            "tm": 2000,
+            "fig": "sector",
+            "beg": { "x": 290, "y": 300, "r": 300, "color": "FFFFFFFF", "ang1": 0, "ang2": 1 },
+            "end": { "ang2": -360 },
+            "wait": 5000
+        }
+    ]
+}

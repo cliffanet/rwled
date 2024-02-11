@@ -75,7 +75,7 @@ class Player {
         if (isplay) return;
         if (_tm >= _max)
             _tm = 0;
-        int beg = DateTime.now().millisecondsSinceEpoch;
+        int beg = DateTime.now().millisecondsSinceEpoch - _tm;
         
         _play = Timer.periodic(
             Duration(milliseconds: 10),
