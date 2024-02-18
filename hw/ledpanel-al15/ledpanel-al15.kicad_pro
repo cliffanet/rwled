@@ -55,7 +55,12 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        "courtyards_overlap|176805791|70756092|0072c4df-a173-4e58-a67d-5037338a4330|40a9fa8d-8e52-40f8-93f8-7834b98a9aed",
+        "courtyards_overlap|178188701|68099348|19a65faa-fbcd-4cc5-be48-513fe83dadbc|40a9fa8d-8e52-40f8-93f8-7834b98a9aed",
+        "courtyards_overlap|28557476|68136009|89216b7d-495c-42ed-8a21-0c5bb3edc315|ee9562b4-a366-40e2-bcd9-47fbf0905f5c",
+        "courtyards_overlap|30116524|70803009|89216b7d-495c-42ed-8a21-0c5bb3edc315|c5283c3a-5676-43ef-b1d9-783c1bfc85eb"
+      ],
       "meta": {
         "version": 2
       },
@@ -407,7 +412,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "ledpanel-al20.kicad_pro",
+    "filename": "ledpanel-al15.kicad_pro",
     "version": 1
   },
   "net_settings": {
