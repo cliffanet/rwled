@@ -16,13 +16,13 @@ import 'dart:developer' as developer;
 
 int n=0;
 class ElemFile {
-    String _n;
-    String get logs => '[${hashCode.toRadixString(16)}] $_n';
+    String _fpath;
+    String get logs => '[${hashCode.toRadixString(16)}] $_fpath';
     StreamSubscription<FileSystemEvent>? _watch;
-    int get hashCode => _n.hashCode;
+    int get hashCode => _fpath.hashCode;
 
     ElemFile._byFile(File f) :
-        _n = f.absolute.path
+        _fpath = f.absolute.path
     {
         developer.log('(${n++}) Opening$logs');
         _makewatch(f);
@@ -32,7 +32,7 @@ class ElemFile {
         await e.load(f);
         return e;
     }
-    ElemFile.empty() : _n = '';
+    ElemFile.empty() : _fpath = '';
 
     void _makewatch(File f) {
         if (_watch != null) {
@@ -41,6 +41,7 @@ class ElemFile {
         }
         
         _watch = f.watch().listen((event) {
+            developer.log('(${n++}) ----------------- file: $event');
             switch (event.type) {
                 case FileSystemEvent.delete:
                     developer.log('(${n++}) delete-event $logs');
@@ -54,13 +55,12 @@ class ElemFile {
                     if (!_isjson(d))
                         close();
 
-                    _n = d.absolute.path;
+                    _fpath = d.absolute.path;
                     break;
                 case FileSystemEvent.modify:
                     load(f);
                     break;
             }
-            developer.log('(${n++}) ----------------- file: $event');
         });
                     
         developer.log('(${n++}) maked watcher $logs (${_watch.hashCode.toRadixString(16)})');
@@ -71,19 +71,20 @@ class ElemFile {
         if (e == null)
             developer.log('(${n++}) my hash not exists $logs');
         else
-        if (identical(e!, this)) {
+        if (identical(e, this)) {
             final r = _all.remove(this);
             developer.log('(${n++}) removed $logs ($r)');
         }
         else {
             developer.log('(${n++}) exists my hash but not me $logs');
         }
+        _clearunam();
     }
 
     @override
     bool operator ==(other) => 
         (other is ElemFile) &&
-        (other._n == this._n);
+        (other._fpath == this._fpath);
     
     // параметры
     bool _hidden = false;
@@ -99,6 +100,32 @@ class ElemFile {
         move.tm = tm;
     }
 
+    // зависимость от других файлов
+    final unam = Set<String>();
+    void _clearunam() {
+        _unam.forEach((name, list) {
+            list.removeWhere((e) {
+                if (!identical(e, this))
+                    return false;
+                developer.log('(${n++}) removed $logs from unam: $name');
+                return true;
+            });
+            if (list.isEmpty)
+                developer.log('(${n++}) cleared unam: $name');
+        });
+        _unam.removeWhere((_, list) => list.isEmpty);
+        // чистим локальный список
+        unam.clear();
+    }
+    void _addunam(String name) {
+        if (unam.contains(name)) return;
+        unam.add(name);
+        if (!_unam.containsKey(name))
+            _unam[name] = [];
+        _unam[name]!.add(this);
+        developer.log('(${n++}) add $logs to unam: $name');
+    }
+
     // данные
     int  _loop = -1;
     int get loop => _loop;
@@ -111,6 +138,7 @@ class ElemFile {
         _name = '';
         _num = 0;
         _loop = -1;
+        _clearunam();
         draw.clear();
         leds.clear();
         move.clear();
@@ -138,6 +166,7 @@ class ElemFile {
         
         final jdraw = json['draw'];
         if ((jdraw is String) && (jdraw != '')) {
+            _addunam(jdraw);
             final f = _all.firstWhere((f) => f.name == jdraw, orElse: () => ElemFile.empty());
             if (f.name == jdraw)
                 draw.clone(f.draw);
@@ -155,6 +184,7 @@ class ElemFile {
         
         final jleds = json['leds'];
         if ((jleds is String) && (jleds != '')) {
+            _addunam(jleds);
             final f = _all.firstWhere((f) => f.name == jleds, orElse: () => ElemFile.empty());
             if (f.name == jleds)
                 leds.clone(f.leds);
@@ -172,6 +202,7 @@ class ElemFile {
 
         final jmove = json['move'];
         if ((jmove is String) && (jmove != '')) {
+            _addunam(jmove);
             final f = _all.firstWhere((f) => f.name == jmove, orElse: () => ElemFile.empty());
             if (f.name == jmove)
                 move.clone(f.move);
@@ -198,6 +229,13 @@ class ElemFile {
         
         Player().max = ScenarioMaxLen();
 
+        developer.log('(${n++}) loaded $logs');
+
+        if (name.isNotEmpty) {
+            final list = (_unam[name] ?? []).where((e) => !identical(e, this)).toList();
+            list.forEach((e) => e.reload());
+        }
+
         ScenarioNotify.value++;
         return ok;
     }
@@ -211,6 +249,14 @@ class ElemFile {
         ScenarioNotify.value++;
     }
 
+    Future<bool> reload() async {
+        //close();
+        if (_fpath.isEmpty) return false;
+        final f = File(_fpath);
+        developer.log('(${n++}) reloading $logs');
+        return await load(f);
+    }
+
     // отрисовка
     void paint(Canvas canvas) {
         final x = move.val(ParType.x);
@@ -218,21 +264,16 @@ class ElemFile {
         final r = move.val(ParType.r);
         final m = Player().lmode;
         draw.paint(canvas, x, y, r);
-        if (m != LightMode.Hidden) {
-            
-            if (m == LightMode.Led) {
-                leds.paint(canvas, x, y, r, true);
-            }
-            else {
-                leds.paint(canvas, x, y, r);
-                if (m == LightMode.Figure)
-                    lght.paint(canvas, _tm);
-            }
-        }
+        if (m == LightMode.Led)
+            leds.paint(canvas, x, y, r, true);
+        else
+        if (m != LightMode.Hidden)
+            leds.paint(canvas, x, y, r);
     }
 }
 
 final Set<ElemFile> _all = {};
+final Map<String,List<ElemFile>> _unam = {};
 StreamSubscription<FileSystemEvent> ?_wdir;
 
 bool _isjson(File f) => extension(f.path).toLowerCase() == '.json';
@@ -246,6 +287,7 @@ void OpenScenarioDir() async {
     _wdir?.cancel();
     _all.forEach((e) { e.close(true); });
     _all.clear();
+    _unam.clear();
 
     final d = Directory(dir);
     final List<FileSystemEntity> entities = d.listSync().toList()
@@ -259,6 +301,7 @@ void OpenScenarioDir() async {
         final o = await ElemFile.byFile(f);
         if (!o.hidden)
             o.tm = Player().tm;
+        // добавляем в _all
         final e = _all.lookup(o);
         if (e != null) {
             e.close();
@@ -275,12 +318,12 @@ void OpenScenarioDir() async {
         open(f);
 
     _wdir = File(dir).watch().listen((event) {
+        developer.log('(${n++}) ----------------- dir: $event');
         if (event.type == FileSystemEvent.create) {
             final f = File(event.path);
             if (_isjson(f))
                 open(f);
         }
-        developer.log('(${n++}) ----------------- dir: $event');
     });
     developer.log('(${n++}) -----------------');
 }
@@ -338,6 +381,11 @@ class ScenarioPainter extends CustomPainter {
 
     @override
     void paint(Canvas canvas, Size size) {
+        if (Player().lmode == LightMode.Figure)
+            _all
+                .where((s) => !s.hidden)
+                .forEach((s) => s.lght.paint(canvas, Player().tm));
+        
         _all
             .where((s) => !s.hidden)
             .forEach((s) => s.paint(canvas));

@@ -91,7 +91,6 @@ class ElemDraw {
                 switch (d['fig'] as String) {
                     case 'num':
                         final fsize = jdouble(d, 'fontsize') ?? 12;
-                        final width = jdouble(d, 'width');
                         _data.add((e, c) {
                             // Перенос формирования TextPainter в рисовальщик
                             // необходим для корректной работы this.num
