@@ -19,7 +19,10 @@ namespace LedRead {
     bool opened();
 
     class Data {
-        const uint8_t *_d;
+        // тут нельзя использовать ссылку на буфер:
+        // 1. эти данные читаются из буфера, который может меняться другим потоком
+        // 2. именно тут данных не так уж и много, чтобы за них так сильно переживать
+        uint8_t _d[64];
         size_t _s;
         public:
             const LedFmt::type_t type;
@@ -39,11 +42,15 @@ namespace LedRead {
                 data(reinterpret_cast<uint8_t*>(&d), sizeof(T));
                 return d;
             }
+
+            static Data fail() {
+                return Data(LedFmt::FAIL, NULL, 0);
+            }
     };
 
     
     Data get();
-    bool seek(size_t pos);
+    //bool seek(size_t pos);
 }
 
 #endif // _led_read_H

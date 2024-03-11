@@ -33,8 +33,14 @@ static void vtxtlog(const char *s, va_list ap) {
     sbeg = snprintf_P(str, 32, PSTR("%3ud %2u:%02u:%02u.%03llu"), d, h, m, ss, ms);
     
     vsnprintf(str+sbeg, len+1, s, ap);
+
+    // мы используем тут активно мультипотоки,
+    // поэтому лучше семафорить
+    static auto _mut = xSemaphoreCreateMutex();
     
+    xSemaphoreTake(_mut, portMAX_DELAY);
     Serial.println(str);
+    xSemaphoreGive(_mut);
 }
 
 void conslog_P(const char *s, ...) {
