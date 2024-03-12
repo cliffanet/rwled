@@ -50,7 +50,7 @@ namespace LedRead {
 
     
     Data get();
-    //bool seek(size_t pos);
+    void reset();
 }
 
 #endif // _led_read_H

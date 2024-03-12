@@ -19,9 +19,6 @@
 #define NUMPIXELS 80
 #define PINENABLE 14
 
-static FILE* fstr = NULL;
-static const auto nstr = PSTR("/strm.led");
-
 /* ------------------------------------------------ */
 
 static Adafruit_NeoPixel pixels[] = {
@@ -71,12 +68,6 @@ static uint32_t acolor(uint32_t acol) {
         acolel(acol,  0, a);
 }
 
-
-static void scenreset() {
-    LedRead::seek(0);
-    LedRead::get(); // чтобы прочитался первый пре-буффер
-}
-
 static TaskHandle_t _scenhnd = NULL;
 static SemaphoreHandle_t _mutex = xSemaphoreCreateMutex();
 
@@ -104,10 +95,12 @@ static void proc_scen( void * param ) {
         if (chg || (pix != NULL)) { \
             xSemaphoreTake(_mutex, portMAX_DELAY); \
             pix->show(); \
-            pix->show(); \
             xSemaphoreGive(_mutex); \
             chg = false; \
         }
+        // второй pix->show(); был убран, это сократило отставание от реального времени
+        // на сценарии test - с 12 сек до 6 за цикл
+        // надо думать, как сделать стабильную прорисовку без мерцаний за максимально короткое время
 
     while (LedRead::opened()) {
         while (tmill() - beg >= tm) {
@@ -150,10 +143,6 @@ static void proc_scen( void * param ) {
                 case LedFmt::LOOP: {
                         pixredraw();
                         auto l = r.d<LedFmt::loop_t>();
-                        if (!LedRead::seek(l.fpos)) {
-                            CONSOLE("seek: %d fail", l.fpos);
-                            goto theEnd;
-                        }
                         CONSOLE("LOOP: curbeg=%lld, curtm=%lld/%d, tm=%d, len=%d", beg, tmill() - beg, tm, l.tm, l.len);
                         beg += l.len - l.tm;
                         //beg = tmill() +  - l.tm;
@@ -174,7 +163,7 @@ static void proc_scen( void * param ) {
 
     theEnd:
     CONSOLE("finish");
-    scenreset();
+    LedRead::reset();
 
     vTaskDelete( NULL );
 }
@@ -190,7 +179,7 @@ static bool runscen(bool run) {
     if (!isscen && run)
         xTaskCreateUniversal(//PinnedToCore(
             proc_scen,      /* Task function. */
-            "scen",         /* name of task. */
+            nam,            /* name of task. */
             10240,          /* Stack size of task */
             pixels,         /* parameter of the task */
             0,              /* priority of the task */
@@ -235,7 +224,7 @@ void LedLight::chcolor(uint8_t chan, uint32_t col) {
     }
 
     if (isscen)
-        scenreset();
+        LedRead::reset();
 
     ch = 1;
     c = colall;

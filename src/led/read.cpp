@@ -12,8 +12,6 @@
 static FILE* fstr = NULL;
 static const auto nstr = PSTR("/strm.led");
 static uint8_t _mynum = 0;
-static uint8_t buf[1100];
-static uint16_t bc = 0, bl = 0;
 
 static inline FILE* open_P(const char *name, char m = 'r') {
     PFNAME(name);
@@ -31,8 +29,10 @@ static inline FILE* open_P(const char *name, char m = 'r') {
 /************************************************************/
 
 class Buf {
-    uint8_t _data[2048];
-    uint16_t _pos = 0, _sz = 0;
+    uint8_t _data[4096];
+    uint16_t _pos = 0;  // указатель на чтение из буфера
+    uint16_t _chk = 0;  // указатель после всех целых записей (с этого места могут быть ещё данные, но не запись целиком)
+    uint16_t _sz = 0;   // указатель на конец прочитанных из файла данных
     bool _eof = false;
     SemaphoreHandle_t _mut;
 
@@ -44,25 +44,17 @@ class Buf {
             vSemaphoreDelete(_mut);
         }
         // сколько ещё осталось данных в буфере
-        const uint16_t avail() const { return _sz > _pos ? _sz-_pos : 0; }
-        const bool eof() const { return _eof; }
-        const bool needfetch() const { return !_eof && (avail() < (sizeof(_data) / 2)); }
-
-        /*
-        // перемещение данных во внешний буфер
-        uint16_t read(uint8_t *dst, uint16_t sz) {
-            xSemaphoreTake(_mut, portMAX_DELAY);
-            if (sz > avail())
-                sz = avail();
-            memcpy(dst, _data+_pos, sz);
-            _pos += sz;
-            xSemaphoreGive(_mut);
-            return sz;
-        }
-        */
+        const uint16_t  avail()     const { return _sz > _pos ? _sz-_pos : 0; }
+        // есть ли доступные для чтения записи в буфере
+        const bool      reced()     const { return _pos < _chk; }
+        // мы закончили читать файл (данные ещё могут оставаться в буфере)
+        const bool      eof()       const { return _eof; }
+        // пора снова читать файл
+        const bool      needfetch() const { return !_eof && (_pos > (_sz / 2)); }
 
         void clear() {
             _pos = 0;
+            _chk = 0;
             _sz = 0;
             _eof = false;
         }
@@ -77,36 +69,94 @@ class Buf {
             if (szf <= 0)
                 return false;
             
-            // Получим данные в отдельный буфер
-            uint8_t dr[szf];
+            //CONSOLE("beg - _pos: %d, _chk: %d, _sz: %d, free: %d", _pos, _chk, _sz, szf);
+            
+            // сколько осталось после целиковых записей
+            auto szc = _sz > _chk ? _sz - _chk : 0;
+            
+            // Получим данные в отдельный буфер:
+            uint8_t dnew[szc + szf], *dr = dnew+szc, *max = dnew+szc+szf;
+            // сначала кусок обрезанной записи
+            if (szc > 0)
+                memcpy(dnew, _data+_chk, szc);
+            // и следом новые данные из буфера
             auto szr = fread(dr, 1, szf, fstr);
             //CONSOLE("sz: %d from %d", szr, szf);
             if (szr <= 0) {
                 _eof = true;
                 return false;
             }
+
+            // теперь проходим все данные в dnew, процеряем целостность записей
+            // но в основном это делается только для поиска LOOP-записей, чтобы
+            // сделать вовремя fseek и продолжить чтение из файла с нового места
+            uint8_t *dchk = dnew, *fin = dr+szr;
+            while (dchk < fin) {
+                uint16_t l = fin-dchk;
+                LedFmt::head_t h;
+                if (l < sizeof(h))
+                    break;
+                memcpy(&h, dchk, sizeof(h));
+                if (h.m != LEDFMT_HDR) {
+                    _eof = true;
+                    CONSOLE("fmt fail");
+                    return false;
+                }
+                if (l < (sizeof(h) + h.sz))
+                    break;
+                dchk += sizeof(h) + h.sz;
+
+                if (h.type == LedFmt::LOOP) {
+                    // попали на seek
+                    LedFmt::loop_t p;
+                    memcpy(&p, dchk-h.sz, sizeof(p) <= h.sz ? sizeof(p) : h.sz);
+                    CONSOLE("loop: %d, %d, %d", p.fpos, p.len, p.tm);
+                    fin = dchk;
+                    if (fseek(fstr, p.fpos, SEEK_SET) == 0) {
+                        CONSOLE("seek to: %d; fin: 0x%08x, max: 0x%08x", p.fpos, fin, max);
+                        // выполняем seek и заного читаем данные
+                        // из файла с новой позиции в наш буфер после loop-команды
+                        if (max > fin) {
+                            auto szs = fread(fin, 1, max-fin, fstr);
+                            if (szs <= 0) {
+                                szs = 0;
+                                _eof = true;
+                            }
+                            fin += szs;
+                        }
+                    }
+                    else
+                        _eof = true;
+                }
+                // таким образом получаем непрерывный поток данных с уже выполненным seek в нужном месте
+                // и дозабитый до упора буфер dnew, где:
+                // - dr     - начало новых данных, которые надо скопировать в рабочий буфер
+                // - dchk   - концовка всех целостных записей
+                // - fin    - окончание данных, прочтённых из файла
+            }
+            //CONSOLE("checked: %d, dnew: %d + %d = %d", dchk-dnew, dr-dnew, fin-dr, fin-dnew);
             
             // теперь работаем уже с основным буфером
             // блокируем его и переносим в начало актуальные данные
             xSemaphoreTake(_mut, portMAX_DELAY);
             if (_pos > 0) {
-                //CONSOLE("shift from: %d (%d)", _pos, avail());
-                auto *d = _data;
-                uint16_t sza = 0;
-                while (_pos < _sz) {
-                    *d = *(_data+_pos);
-                    d   ++;
-                    _pos++;
-                    sza ++;
+                //CONSOLE("shift from: %d / %d (%d)", _pos, _chk, avail());
+                // это будет сдвиг на _pos байт влево
+                auto *s = _data+_pos, *f = _data+_sz;
+                while (s < f) {
+                    *(s-_pos) = *s;
+                    s++;
                 }
+                _sz     -= _pos;
+                _chk    -= _pos;
                 _pos = 0;
-                _sz = sza;
             }
             
             // Переносим новые данные
-            memcpy(_data+_sz, dr, szr);
-            _sz += szr;
-            //CONSOLE("new sz: %d (%d)", _sz, avail());
+            memcpy(_data+_sz, dr, fin-dr);
+            _sz     += fin  - dr;
+            _chk    += dchk - dnew;
+            //CONSOLE("end - _pos: %d, _chk: %d, _sz: %d", _pos, _chk, _sz);
 
             xSemaphoreGive(_mut);
             return true;
@@ -122,11 +172,6 @@ class Buf {
             xSemaphoreGive(_mut);
 
             return ok;
-        }
-
-        bool isrec() { // полна ли очередная запись
-            LedFmt::head_t h;
-            return hdr(h);
         }
 
         LedRead::Data get() {
@@ -154,7 +199,7 @@ static void _preread_f( void * param  ) {
     auto buf = reinterpret_cast<Buf *>(param);
     //CONSOLE("running on core %d", xPortGetCoreID());
     bool ok = buf->fetch();
-    CONSOLE("fetched: %d", ok);
+    //CONSOLE("fetched: %d", ok);
 
     xSemaphoreGive(_premut);
     vTaskDelete( NULL );
@@ -165,7 +210,7 @@ static bool _preread() {
 
     if (xTaskGetHandle(nam) != NULL) {
         // процесс ещё работает
-        if (_buf.isrec()) // но ещё можем подождать
+        if (_buf.reced()) // но ещё можем подождать
             return false;
 
         // ждать уже не можем, поэтому дожидаемся завершения
@@ -174,7 +219,7 @@ static bool _preread() {
         xSemaphoreGive(_premut);
         CONSOLE("mutex end (avail: %d)",  _buf.avail());
 
-        if (_buf.isrec() || _buf.eof()) // дождались новых данных или конца файла
+        if (_buf.reced() || _buf.eof()) // дождались новых данных или конца файла
             return false;
     }
 
@@ -188,10 +233,6 @@ static bool _preread() {
         NULL,           /* Task handle to keep track of created task */
         1               /* pin task to core 0 */
     );
-
-    // дожидаемся новых данных иликонца файла
-    while (!_buf.isrec() && !_buf.eof())
-        CONSOLE("wait data (avail: %d)", _buf.avail());
 
     return true;
 }
@@ -288,69 +329,18 @@ LedRead::Data LedRead::get() {
         //CONSOLE("need preread");
         _preread();
     }
+    // дожидаемся новых данных или конца файла
+    while (!_buf.reced() && !_buf.eof())
+        CONSOLE("wait data (avail: %d)", _buf.avail());
     return _buf.get();
 }
 
-/*
-static bool _bufread(uint8_t *data, size_t sz) {
-    if (sz > bl) {
-        if (fstr == NULL) {
-            CONSOLE("led stream not opened");
-            return false;
-        }
-        if (bc > 0) {
-            for (int i = 0; i < bl; i++)
-                buf[i] = buf[bc+i];
-            bc = 0;
-        }
-        size_t l = 1024;
-        if (l+bl > sizeof(buf))
-            l = sizeof(buf) - bl;
-        l = fread(buf+bl, 1, l, fstr);
-        //CONSOLE("buf readed: %d / %d", l, ftell(fstr));
-        if (l < 1) {
-            CONSOLE("[%d]: can\'t file read", ftell(fstr));
-            return false;
-        }
-        bl += l;
+void LedRead::reset() {
+    _buf.clear();
+    if (fstr != NULL) {
+        xSemaphoreTake(_premut, portMAX_DELAY);
+        fseek(fstr, 0, SEEK_SET);
+        xSemaphoreGive(_premut);
     }
-
-    if (sz > bl) {
-        CONSOLE("[%d]: no buf[%d] data(%d)", ftell(fstr), sz, bl);
-        return false;
-    }
-
-    if (data != NULL)
-        memcpy(data, buf+bc, sz);
-    bc += sz;
-    bl -= sz;
-
-    return true;
+    _preread();
 }
-
-LedRead::Data LedRead::get() {
-    LedFmt::head_t h;
-    if (!_bufread(reinterpret_cast<uint8_t *>(&h), sizeof(h))) {
-        CONSOLE("[%d]: hdr read", ftell(fstr));
-        return Data(LedFmt::FAIL, buf+bc, 0);
-    }
-    if (h.m != LEDFMT_HDR) {
-        CONSOLE("[%d]: hdr fail", ftell(fstr));
-        return Data(LedFmt::FAIL, buf+bc, 0);
-    }
-
-    if (!_bufread(NULL, h.sz)) {
-        CONSOLE("[%d]: data read", ftell(fstr));
-        return Data(LedFmt::FAIL, buf+bc, 0);
-    }
-
-    return Data(static_cast<LedFmt::type_t>(h.type), buf+bc-h.sz, h.sz);
-}
-
-bool LedRead::seek(size_t pos) {
-    CONSOLE("pos: %d -> %d", ftell(fstr), pos);
-    bc = 0;
-    bl = 0;
-    return fseek(fstr, pos, SEEK_SET) == 0;
-}
-*/
