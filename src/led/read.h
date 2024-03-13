@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include "fmt.h"
 
+#define LEDREAD_NUMPIXELS 80
+
 namespace LedRead {
     const char *fname();
     bool open();
@@ -48,9 +50,19 @@ namespace LedRead {
             }
     };
 
+    typedef struct {
+        uint8_t     num;
+        bool        chg;
+        uint16_t    cnt;
+        uint32_t    col[LEDREAD_NUMPIXELS];
+    } chan_t;
     
     Data get();
     void reset();
+
+    void start();
+    void stop();
+    bool isrun();
 }
 
 #endif // _led_read_H

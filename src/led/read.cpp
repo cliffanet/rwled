@@ -2,31 +2,96 @@
 #include "read.h"
 #include "fmt.h"
 #include "../core/file.h"
+#include "../core/clock.h"
 #include "../core/log.h"
 
 #include <string.h>
 #include "vfs_api.h"
 #include <sys/unistd.h>
 
+/************************************************************
+ *
+ *  Блок функций работы с файлом данных
+ * 
+ ************************************************************/
 
 static FILE* fstr = NULL;
 static const auto nstr = PSTR("/strm.led");
 static uint8_t _mynum = 0;
 
-static inline FILE* open_P(const char *name, char m = 'r') {
-    PFNAME(name);
-    char mode[2] = { m };
-    FILE* f = fopen(fname, mode);
-    if (f)
-        CONSOLE("opened[%s] ok: %s", mode, fname);
-    else
-        CONSOLE("can't open[%s] %s", mode, fname);
+static void _bufopen();
+
+const char *LedRead::fname() {
+    return nstr;
+}
+
+bool LedRead::open()
+{
+    if (fstr != NULL)
+        return false;
     
-    return f;
+    PFNAME(nstr);
+    char mode[2] = { 'r' };
+    fstr = fopen(fname, mode);
+    if (fstr)
+        CONSOLE("opened[%s] ok: %s", mode, fname);
+    else {
+        CONSOLE("can't open[%s] %s", mode, fname);
+        return false;
+    }
+
+    _bufopen();
+    
+    auto r = LedRead::get();
+    if (r.type == LedFmt::START) {
+        _mynum = r.d<uint8_t>();
+        CONSOLE("mynum: %d", _mynum);
+    }
+    else {
+        CONSOLE("file format fail");
+        _mynum = 0;
+        //seek(0);
+    }
+    
+    return true;
+}
+
+bool LedRead::close() {
+    if (fstr == NULL)
+        return false;
+    
+    fclose(fstr);
+    fstr = NULL;
+    _mynum = 0;
+
+    return true;
+}
+
+size_t LedRead::fsize()
+{
+    PFNAME(nstr);
+
+    struct stat st;
+    if (stat(fname, &st) != 0)
+        return -1;
+
+    return st.st_size;
+}
+
+uint8_t LedRead::mynum() {
+    return _mynum;
+}
+
+bool LedRead::opened() {
+    return fstr != NULL;
 }
 
 
-/************************************************************/
+/************************************************************
+ *
+ *  Блок упреждающего чтения данных из файла в буфер
+ * 
+ ************************************************************/
 
 class Buf {
     uint8_t _data[4096];
@@ -194,6 +259,11 @@ class Buf {
 static Buf _buf;
 static auto _premut = xSemaphoreCreateMutex();
 
+static void _bufopen() {
+    _buf.clear();
+    _buf.fetch();
+}
+
 static void _preread_f( void * param  ) {
     xSemaphoreTake(_premut, portMAX_DELAY);
     auto buf = reinterpret_cast<Buf *>(param);
@@ -238,67 +308,7 @@ static bool _preread() {
 }
 
 
-/************************************************************/
 
-const char *LedRead::fname() {
-    return nstr;
-}
-
-bool LedRead::open()
-{
-    if (fstr != NULL)
-        return false;
-    
-    fstr = open_P(nstr);
-    if (fstr == NULL) return false;
-
-    _buf.clear();
-    _buf.fetch();
-    
-    auto r = LedRead::get();
-    if (r.type == LedFmt::START) {
-        _mynum = r.d<uint8_t>();
-        CONSOLE("mynum: %d", _mynum);
-    }
-    else {
-        CONSOLE("file format fail");
-        _mynum = 0;
-        //seek(0);
-    }
-    
-    return true;
-}
-
-bool LedRead::close() {
-    if (fstr == NULL)
-        return false;
-    
-    fclose(fstr);
-    fstr = NULL;
-    _mynum = 0;
-    _buf.clear();
-
-    return true;
-}
-
-size_t LedRead::fsize()
-{
-    PFNAME(nstr);
-
-    struct stat st;
-    if (stat(fname, &st) != 0)
-        return -1;
-
-    return st.st_size;
-}
-
-uint8_t LedRead::mynum() {
-    return _mynum;
-}
-
-bool LedRead::opened() {
-    return fstr != NULL;
-}
 
 
 /************************************************************/
@@ -343,4 +353,176 @@ void LedRead::reset() {
         xSemaphoreGive(_premut);
     }
     _preread();
+}
+
+/************************************************************
+ *
+ *  Блок заполнения информации о цветах светодиодов в массивы
+ * 
+ ************************************************************/
+
+static auto _ledmut = xSemaphoreCreateMutex();
+static LedRead::chan_t _ledall[] = {
+    { 1 },
+    { 2 },
+    { 3 },
+    { 4 },
+};
+
+static void _led_clear() {
+    xSemaphoreTake(_ledmut, portMAX_DELAY);
+    uint8_t n = 0;
+    for (auto &l: _ledall) {
+        bzero(&l, sizeof(LedRead::chan_t));
+        n++;
+        l.num = n;
+    }
+    xSemaphoreGive(_ledmut);
+}
+
+static inline uint32_t _acolel(uint32_t acol, uint8_t bit, uint8_t a) {
+    return ((((acol >> bit) & 0xff) * a / 0xff) & 0xff) << bit;
+}
+static uint32_t _acolor(uint32_t acol) {
+    uint8_t a = (acol >> 24) & 0xff;
+    if (a == 0xff)
+        return acol & 0x00ffffff;
+    return
+        _acolel(acol, 16, a) |
+        _acolel(acol,  8, a) |
+        _acolel(acol,  0, a);
+}
+
+static void _reset() {
+    _buf.clear();
+    if (fstr != NULL) {
+        xSemaphoreTake(_premut, portMAX_DELAY);
+        fseek(fstr, 0, SEEK_SET);
+        xSemaphoreGive(_premut);
+    }
+    _preread();
+    _led_clear();
+}
+
+void _fill_f( void * param  ) {
+    auto beg = tmill();
+    uint32_t tm = 0;
+    CONSOLE("running on core %d, beg: %lld", xPortGetCoreID(), beg);
+
+    _led_clear();
+    LedRead::chan_t *led = NULL;
+
+    while (fstr != NULL) {
+        // Ожидаем очередное время tm
+        while (tmill() - beg < tm) ;
+
+        // дожидаемся новых данных или конца файла
+        while (!_buf.reced() && !_buf.eof())
+            CONSOLE("wait data (avail: %d)", _buf.avail());
+        
+        // новая запись
+        auto r = _buf.get();
+
+        // инициируем догрузку пре-буфера, если требуется
+        if (_buf.needfetch())
+            _preread();
+        
+        // парсим
+        switch (r.type) {
+            case LedFmt::FAIL:
+                goto theEnd;
+            
+            case LedFmt::START:
+                CONSOLE("start: %d", r.d<uint8_t>());
+                break;
+            
+            case LedFmt::TIME:
+                tm = r.d<uint32_t>();
+                //CONSOLE("tm: %d", tm);
+                break;
+            
+            case LedFmt::CHAN: {
+                    auto n = r.d<uint8_t>();
+                    led = (n > 0) && (n <= 4) ?
+                        _ledall + n - 1 : NULL;
+                    //CONSOLE("ch: %d", n);
+                }
+                break;
+            
+            case LedFmt::LED: {
+                    auto c = r.d<LedFmt::col_t>();
+                    if ((led != NULL) && (c.num > 0) && (c.num <= LEDREAD_NUMPIXELS)) {
+                        auto col = _acolor(c.color);
+                        xSemaphoreTake(_ledmut, portMAX_DELAY);
+                        if (led->col[c.num-1] != col) {
+                            led->col[c.num-1] = col;
+                            led->chg = true;
+                            if (led->cnt < c.num)
+                                led->cnt = c.num;
+                        }
+                        xSemaphoreGive(_ledmut);
+                    }
+                    //CONSOLE("color: %d = 0x%08x", c.num, c.color);
+                }
+                break;
+            
+            case LedFmt::LOOP: {
+                    auto l = r.d<LedFmt::loop_t>();
+                    CONSOLE("LOOP: curbeg=%lld, curtm=%lld/%d, tm=%d, len=%d", beg, tmill() - beg, tm, l.tm, l.len);
+                    beg += l.len - l.tm;
+                    //beg = tmill() +  - l.tm;
+                    tm = l.tm;
+                    led = NULL;
+                    CONSOLE("beg: %lld / %d", beg, tm);
+                    CONSOLE("tmill: %lld", tmill());
+                }
+                break;
+            
+            case LedFmt::END:
+                CONSOLE("end");
+                goto theEnd;
+        }
+    }
+
+    theEnd:
+    CONSOLE("finish");
+    _reset();
+    vTaskDelete( NULL );
+}
+
+static TaskHandle_t _fill(bool run) {
+    char nam[16];
+    strncpy_P(nam, PSTR("fill"), sizeof(nam));
+
+    TaskHandle_t hnd = xTaskGetHandle(nam);
+
+    if (run && (hnd == NULL))
+        xTaskCreateUniversal(//PinnedToCore(
+            _fill_f,        /* Task function. */
+            nam,            /* name of task. */
+            10240,          /* Stack size of task */
+            NULL,           /* parameter of the task */
+            0,              /* priority of the task */
+            NULL,           /* Task handle to keep track of created task */
+            1               /* pin task to core 0 */
+        );
+
+    return hnd;
+}
+
+void LedRead::start() {
+    _fill(true);
+}
+
+void LedRead::stop() {
+    auto hnd = _fill(false);
+    CONSOLE("_fill_hnd: 0x%08x", hnd);
+    if (hnd == NULL)
+        return;
+    vTaskDelete( hnd );
+    _reset();
+}
+
+bool LedRead::isrun() {
+    return _fill(false) != NULL;
 }
