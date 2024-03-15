@@ -45,51 +45,23 @@ void LedRead::off() {
  *  Класс записи сценария
  * 
  ************************************************************/
+LedRec::LedRec(LedFmt::type_t type, const uint8_t *d, size_t sz) :
+    type(type),
+    _s(sz <= sizeof(_d) ? sz : sizeof(_d))
+{
+    memcpy(_d, d, _s);
+}
 
-class LedRec {
-    // тут нельзя использовать ссылку на буфер:
-    // 1. эти данные читаются из буфера, который может меняться другим потоком
-    // 2. именно тут данных не так уж и много, чтобы за них так сильно переживать
-    uint8_t _d[64];
-    size_t _s;
-    public:
-        const LedFmt::type_t type;
-    
-        LedRec(LedFmt::type_t type, const uint8_t *d, size_t sz) :
-            type(type),
-            _s(sz <= sizeof(_d) ? sz : sizeof(_d))
-        {
-            memcpy(_d, d, _s);
-        }
-
-        uint8_t sz()    const { return _s; }
-
-        void data(uint8_t *buf, size_t sz) {
-            if (_s <= 0)
-                return;
-            if (sz > _s) {
-                memcpy(buf, _d, _s);
-                memset(buf+_s, 0, sz-_s);
-            }
-            else
-                memcpy(buf, _d, sz);
-        }
-        template <typename T>
-        T d() {
-            // Можно было бы вернуть просто: const T&
-            // сделав простой возврат: *reinterpret_cast<uint8_t*>(_b+4)
-            // Но тут есть большой риск, что придут данные, короче, чем T,
-            // и тогда будем иметь неприятные вылеты. Поэтому лучше лишний
-            // раз скопировать данные и обнулить хвост при необходимости.
-            T d;
-            data(reinterpret_cast<uint8_t*>(&d), sizeof(T));
-            return d;
-        }
-
-        static LedRec fail() {
-            return LedRec(LedFmt::FAIL, NULL, 0);
-        }
-};
+void LedRec::data(uint8_t *buf, size_t sz) {
+    if (_s <= 0)
+        return;
+    if (sz > _s) {
+        memcpy(buf, _d, _s);
+        memset(buf+_s, 0, sz-_s);
+    }
+    else
+        memcpy(buf, _d, sz);
+}
 
 /************************************************************
  *
@@ -166,7 +138,6 @@ bool LedRead::opened() {
     return fstr != NULL;
 }
 
-
 /************************************************************
  *
  *  Блок упреждающего чтения данных из файла в буфер
@@ -191,7 +162,7 @@ class Buf {
         // сколько ещё осталось данных в буфере
         const uint16_t  avail()     const { return _sz > _pos ? _sz-_pos : 0; }
         // есть ли доступные для чтения записи в буфере
-        const bool      reced()     const { return _pos < _chk; }
+        const bool      recfull()   const { return _pos < _chk; }
         // мы закончили читать файл (данные ещё могут оставаться в буфере)
         const bool      eof()       const { return _eof; }
         // пора снова читать файл
@@ -349,7 +320,7 @@ static void _preread_f( void * param  ) {
     mutTake(_premut);
     //CONSOLE("running on core %d", xPortGetCoreID());
     bool ok = _buf.fetch();
-    //CONSOLE("fetched: %d, fpos", ok, ftell(fstr));
+    //CONSOLE("fetched: %d, fpos: %d", ok, ftell(fstr));
 
     mutGive(_premut);
     vTaskDelete( NULL );
@@ -360,7 +331,7 @@ static bool _preread() {
 
     if (xTaskGetHandle(nam) != NULL) {
         // процесс ещё работает
-        if (_buf.reced()) // но ещё можем подождать
+        if (_buf.recfull()) // но ещё можем подождать
             return false;
 
         // ждать уже не можем, поэтому дожидаемся завершения
@@ -369,7 +340,7 @@ static bool _preread() {
         mutGive(_premut);
         CONSOLE("mutex end (avail: %d)",  _buf.avail());
 
-        if (_buf.reced() || _buf.eof()) // дождались новых данных или конца файла
+        if (_buf.recfull() || _buf.eof()) // дождались новых данных или конца файла
             return false;
     }
 
@@ -385,7 +356,51 @@ static bool _preread() {
 
     return true;
 }
+static TaskHandle_t _preread(bool run) {
+    char nam[16];
+    strncpy_P(nam, PSTR("pread"), sizeof(nam));
 
+    TaskHandle_t hnd = xTaskGetHandle(nam);
+
+    if (run && (hnd == NULL))
+        xTaskCreateUniversal(//PinnedToCore(
+            _preread_f,     /* Task function. */
+            nam,            /* name of task. */
+            10240,          /* Stack size of task */
+            NULL,           /* parameter of the task */
+            5,              /* priority of the task */
+            NULL,           /* Task handle to keep track of created task */
+            0               /* pin task to core 0 */
+        );
+
+    return hnd;
+}
+
+bool LedRead::eof() {
+    return _buf.eof();
+}
+
+bool LedRead::recfull() {
+    return _buf.recfull();
+}
+
+void LedRead::reset() {
+    mutTake(_premut);
+    _buf.clear();
+    if (fstr != NULL)
+        fseek(fstr, 0, SEEK_SET);
+    mutGive(_premut);
+
+    _preread(true);
+}
+
+LedRec LedRead::get() {
+    // инициируем догрузку пре-буфера, если требуется
+    if (_buf.needfetch())
+        _preread(true);
+
+    return _buf.get();
+}
 
 /************************************************************
  *
@@ -458,7 +473,7 @@ void _fill_f( void * param  ) {
         while (_fillrun && (tmill() - beg < tm)) ;
 
         // дожидаемся новых данных или конца файла
-        while (_fillrun && !_buf.reced() && !_buf.eof())
+        while (_fillrun && !_buf.recfull() && !_buf.eof())
             CONSOLE("wait data (avail: %d)", _buf.avail());
         
         // новая запись
