@@ -1,11 +1,15 @@
 
 #include "light.h"
 #include "read.h"
+#include "ws2812.h"
 #include "../core/worker.h"
 #include "../core/clock.h"
 #include "../core/log.h"
 
 #include <string.h>
+#include "esp32-hal-gpio.h"
+
+static uint8_t _pinall[] = { 26, 27, 25, 32 };
 
 /************************************************************
  *
@@ -73,6 +77,9 @@ public:
         CONSOLE("(0x%08x) destroy", this);
     }
 
+    void chg(uint8_t n) { _all[n].chg = false; }
+    const chan_t& chan(uint8_t n) { return _all[n]; }
+
     state_t run() {
         if (LedRead::eof())
             return END;
@@ -88,6 +95,7 @@ public:
             // парсим
             switch (r.type) {
                 case LedFmt::FAIL:
+                    CONSOLE("fail");
                     return END;
 
                 case LedFmt::START:
@@ -145,20 +153,154 @@ public:
 
         return DLY;
     }
+
+    void end() {
+        LedRead::reset();
+    }
 };
 
 static WrkProc<_fillWrk> _lfwrk;
 
+/************************************************************
+ *
+ *  Заполнение всей ленты определённым цветом
+ * 
+ ************************************************************/
+
+static void fullcolor(uint8_t pin, uint8_t r, uint8_t g, uint8_t b) {
+    uint8_t led[LEDLIGHT_NUMPIXELS*3];
+    for (int n = 0; n < LEDLIGHT_NUMPIXELS; n++) {
+        auto *d = led + n*3;
+        // G - R - B - order
+        d[0] = g;
+        d[1] = r;
+        d[2] = b;
+    }
+    CONSOLE("make: %d", pin);
+    LedDriver::make(pin, led, sizeof(led));
+}
+
+/************************************************************
+ *
+ *  Заполнение лент цветами из массивов _fillWrk
+ * 
+ ************************************************************/
+
+class _showWrk : public Wrk {
+
+public:
+    _showWrk() {
+        CONSOLE("(0x%08x) create", this);
+
+        for (uint8_t chan=0; chan < 4; chan++)
+            LedDriver::init(chan, _pinall[chan]);
+    }
+    ~_showWrk() {
+        CONSOLE("(0x%08x) destroy", this);
+    }
+
+    void done() {
+        for (uint8_t chan=0; chan < 4; chan++)
+            LedDriver::done(chan, _pinall[chan]);
+        CONSOLE("finish");
+    }
+
+    state_t run() {
+        if (!_lfwrk.isrun()) {
+            done();
+            return END;
+        }
+
+        for (uint8_t chan=0; chan < 4; chan++) {
+            auto &c = _lfwrk->chan(chan);
+
+            if (!c.chg || (c.sz <= 0))
+                continue;
+
+            //CONSOLE("draw: %d", l.num);
+
+            uint8_t pin = _pinall[c.num-1];
+            LedDriver::write(chan, c.col, c.sz);
+            LedDriver::wait(chan);
+
+            _lfwrk->chg(chan);
+        }
+
+        return RUN;
+    }
+};
+
+static WrkProc<_showWrk> _lswrk;
+
+/************************************************************
+ *
+ *  Внешнее управление лентами
+ * 
+ ************************************************************/
+void LedLight::on() {
+    bool reset = digitalRead(LEDLIGHT_PINENABLE) == LOW;
+
+    pinMode(LEDLIGHT_PINENABLE, OUTPUT);
+    digitalWrite(LEDLIGHT_PINENABLE, HIGH);
+
+    if (reset)
+        for (const auto &pin: _pinall)
+            fullcolor(pin, 0, 0, 0);
+}
+
+void LedLight::off() {
+    for (const auto &pin: _pinall)
+        fullcolor(pin, 0, 0, 0);
+    digitalWrite(LEDLIGHT_PINENABLE, LOW);
+}
+
+
 void LedLight::start() {
     if (!_lfwrk.isrun())
         _lfwrk = wrkRun<_fillWrk>();
+
+    if (!_lswrk.isrun())
+        _lswrk = wrkRun<_showWrk>();
 }
 
 void LedLight::stop() {
     if (_lfwrk.isrun())
         _lfwrk.term();
+
+    if (_lswrk.isrun()) {
+        _lswrk.term();
+        _lswrk->done();
+    }
 }
 
 bool LedLight::isrun() {
-    return _lfwrk.isrun();
+    return _lfwrk.isrun() && _lswrk.isrun();
+}
+
+void LedLight::fixcolor(uint8_t nmask, uint32_t col, bool force) {
+    uint8_t nbit = 1;
+    static uint32_t colall[4] = { 0, 0, 0, 0 };
+    uint32_t *c = colall;
+
+    if (_lfwrk.isrun() || _lswrk.isrun()) {
+        stop();
+        for (auto &c: colall)
+            c = 0;
+        for (const auto &pin: _pinall)
+            fullcolor(pin, 0, 0, 0);
+    }
+
+    uint8_t
+        r = (col & 0x00ff0000) >> 16,
+        g = (col & 0x0000ff00) >> 8,
+        b = (col & 0x000000ff);
+
+    for (const auto &pin: _pinall) {
+        if (((nmask & nbit) > 0) && (force || (*c != col))) {
+            fullcolor(pin, r, g, b);
+            *c = col;
+        }
+        nbit = nbit << 1;
+        c ++;
+    }
 }

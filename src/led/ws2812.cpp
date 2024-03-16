@@ -128,7 +128,7 @@ void LedDriver::init(uint8_t chan, uint8_t pin) {
     ESP(rmt_translator_init(cfg.channel, ws2812_rmt_adapter));
 }
 
-void LedDriver::write(uint8_t chan, uint8_t *data, size_t sz) {
+void LedDriver::write(uint8_t chan, const uint8_t *data, size_t sz) {
     // Write
     ESP(rmt_write_sample(static_cast<rmt_channel_t>(chan), data, sz, true));
 }
@@ -145,7 +145,7 @@ void LedDriver::done(uint8_t chan, uint8_t pin) {
     ESP(gpio_set_direction(static_cast<gpio_num_t>(pin), GPIO_MODE_OUTPUT));
 }
 
-void LedDriver::make(uint8_t pin, uint8_t *data, size_t sz) {
+void LedDriver::make(uint8_t pin, const uint8_t *data, size_t sz) {
     init(4, pin);
     write(4, data, sz);
     wait(4);
