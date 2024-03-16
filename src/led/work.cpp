@@ -24,12 +24,11 @@ class _ledtestWrk : public Wrk {
         [this]() { sync(); }
     );
     Btn _btn_sync = Btn(
-        //[this]() { timer(tmill()-tmsync+7000); },
-        [this]() { timer(tmill()-tmsync+2000); },
+        [this]() { timer(tmill()-tmsync+5000); },
         [this]() { stop(); }
     );
     Btn _btn_scen = Btn(
-        //powerOff, // на время тестирования уберём poweroff и сделаем простым кликом останов
+        powerOff,
         [this]() { stop(); }
         //[this]() { canopy(); } // для тестирования
     );
@@ -37,10 +36,9 @@ class _ledtestWrk : public Wrk {
         [this]() { wait(); }
     );
     Btn _btn_idle = Btn(
-        //powerOff, // на время тестирования уберём poweroff и сделаем простым кликом останов
+        powerOff,
         [this]() { sync(); }
         //[this]() { _mode == WAIT ? canopy() : wait(); } // для тестирования
-        ,powerOff
     );
 
     Indicator _ind_stop = Indicator(
@@ -121,7 +119,7 @@ class _ledtestWrk : public Wrk {
             snd([this]() { wifiSend<uint32_t>(0x21, tmscen); }) :
             snd(NULL);
         
-        LedLight::start();
+        LedLight::start(tmsync + tmscen);
     }
     void canopy() {
         CONSOLE("to CANOPY");
@@ -179,6 +177,7 @@ public:
             
             tmscen = tm;
             CONSOLE("corrected: %d", tmscen);
+            LedLight::start(tmsync + tmscen);
         });
 
         // scen

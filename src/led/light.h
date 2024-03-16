@@ -20,7 +20,7 @@ namespace LedLight {
     void on();
     void off();
 
-    void start();
+    void start(int64_t tm);
     void stop();
     bool isrun();
 

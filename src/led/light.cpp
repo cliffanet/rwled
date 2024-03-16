@@ -20,6 +20,7 @@ static uint8_t _pinall[] = { 26, 27, 25, 32 };
 class _fillWrk : public Wrk {
     int64_t beg;
     uint32_t tm = 0;
+    bool allowsync = true;
 
     typedef struct {
         uint8_t     num;
@@ -68,13 +69,18 @@ class _fillWrk : public Wrk {
     }
 
 public:
-    _fillWrk() {
+    _fillWrk(int64_t tm = -1) {
         CONSOLE("(0x%08x) create", this);
 
-        beg = tmill();
+        beg = tm > 0 ? tm : tmill();
     }
     ~_fillWrk() {
         CONSOLE("(0x%08x) destroy", this);
+    }
+
+    void sync(int64_t tm) {
+        if (allowsync)
+            beg = tm;
     }
 
     void chg(uint8_t n) { _all[n].chg = false; }
@@ -140,6 +146,7 @@ public:
                         //beg = tmill() +  - l.tm;
                         tm = l.tm;
                         ch = NULL;
+                        allowsync = false;
                         CONSOLE("beg: %lld / %d", beg, tm);
                         CONSOLE("tmill: %lld", tmill());
                     }
@@ -176,7 +183,6 @@ static void fullcolor(uint8_t pin, uint8_t r, uint8_t g, uint8_t b) {
         d[1] = r;
         d[2] = b;
     }
-    CONSOLE("make: %d", pin);
     LedDriver::make(pin, led, sizeof(led));
 }
 
@@ -217,8 +223,6 @@ public:
             if (!c.chg || (c.sz <= 0))
                 continue;
 
-            //CONSOLE("draw: %d", l.num);
-
             uint8_t pin = _pinall[c.num-1];
             LedDriver::write(chan, c.col, c.sz);
             LedDriver::wait(chan);
@@ -255,9 +259,11 @@ void LedLight::off() {
 }
 
 
-void LedLight::start() {
+void LedLight::start(int64_t tm) {
     if (!_lfwrk.isrun())
-        _lfwrk = wrkRun<_fillWrk>();
+        _lfwrk = wrkRun<_fillWrk>(tm);
+    else
+        _lfwrk->sync(tm);
 
     if (!_lswrk.isrun())
         _lswrk = wrkRun<_showWrk>();
