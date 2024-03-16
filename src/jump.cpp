@@ -3,6 +3,7 @@
 #include "core/worker.h"
 #include "core/clock.h"
 #include "core/btn.h"
+#include "core/display.h"
 #include "core/indicator.h"
 #include "core/log.h"
 #include "led/work.h"
@@ -18,6 +19,25 @@ class _jmpWrk : public Wrk {
     uint64_t tck;
     int64_t tm = tmill();
     bool ok, iscnp = false;
+
+    Display _dspl = Display(
+        [this](U8G2 &u8g2) {
+            char s[30];
+            u8g2.setFont(u8g2_font_ImpactBits_tr);
+            SPRN("%.0f", abs(ac.avg().alt()));
+            u8g2.drawStr(SRGHT, 13, s);
+
+            switch (jmp.mode()) {
+                case AltJmp::INIT:      SCPY("INIT"); break;
+                case AltJmp::GROUND:    SCPY("gnd"); break;
+                case AltJmp::TAKEOFF:   SCPY("toff"); break;
+                case AltJmp::FREEFALL:  SCPY("ff"); break;
+                case AltJmp::CANOPY:    SCPY("cnp"); break;
+                default: s[0] = '\0';
+            }
+            u8g2.drawStr(SRGHT, 28, s);
+        }
+    );
 
     Indicator _ind_toff = Indicator(
         [this](uint16_t t) { return (t < 3) || ((t > 7) && (t < 10)); },

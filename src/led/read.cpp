@@ -4,6 +4,7 @@
 #include "ws2812.h"
 #include "../core/file.h"
 #include "../core/clock.h"
+#include "../core/display.h"
 #include "../core/log.h"
 
 #include <string.h>
@@ -47,6 +48,19 @@ static FILE* fstr = NULL;
 static const auto nstr = PSTR("/strm.led");
 static uint8_t _mynum = 0;
 
+static Display _dspl = Display(
+        [](U8G2 &u8g2) {
+            char s[30];
+            u8g2.setFont(u8g2_font_ImpactBits_tr);
+            if (_mynum == 0)
+                SCPY("no num");
+            else
+                SPRN("# %d", _mynum);
+            u8g2.drawStr(0, 13, s);
+        },
+        false, false
+    );
+
 static LedRec _bufopen();
 
 const char *LedRead::fname() {
@@ -78,6 +92,8 @@ bool LedRead::open()
         _mynum = 0;
         //seek(0);
     }
+
+    _dspl.show();
     
     return true;
 }

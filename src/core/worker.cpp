@@ -73,10 +73,10 @@ void wrkProcess(uint32_t tmmax)
                         run = true;
                         break;
                 }
-            
-            if ((tmill()-beg) >= tmmax)
-                return;
         }
+        
+        if ((tmill()-beg) >= tmmax)
+            return;
     }
 }
 

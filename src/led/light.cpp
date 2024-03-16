@@ -4,6 +4,7 @@
 #include "ws2812.h"
 #include "../core/worker.h"
 #include "../core/clock.h"
+#include "../core/display.h"
 #include "../core/log.h"
 
 #include <string.h>
@@ -250,6 +251,9 @@ void LedLight::on() {
     if (reset)
         for (const auto &pin: _pinall)
             fullcolor(pin, 0, 0, 0);
+    
+    // после включения hwen - надо переинициировать дисплей
+    displayInit();
 }
 
 void LedLight::off() {
