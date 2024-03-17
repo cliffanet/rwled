@@ -65,7 +65,7 @@ class _ledtestWrk : public Wrk {
                     u8g2.drawStr(0, 40, s);
                     break;
                 case SCEN:
-                    if ((_drawtmr % 4) < 2) {
+                    if ((_drawtmr % 10) < 5) {
                         SCPY("SHOW");
                         u8g2.drawStr(0, 40, s);
                     }

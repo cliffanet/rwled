@@ -13,6 +13,7 @@ static U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0);
 
 class _dsplWrk : public Wrk {
     std::list<Display*> _hnd;
+    uint8_t _cnt = 0;
 
 public:
     _dsplWrk() {
@@ -47,7 +48,7 @@ public:
         return false;
     }
 
-    state_t run() {
+    void draw() {
         u8g2.firstPage();
         do {
             for (auto d = _hnd.rbegin(); d != _hnd.rend(); ++d) {
@@ -56,6 +57,15 @@ public:
                     break;
             }
         }  while( u8g2.nextPage() );
+    }
+
+    state_t run() {
+        if (_cnt < 4)
+            _cnt++;
+        else {
+            _cnt = 0;
+            draw();
+        }
 
         return DLY;
     }
@@ -70,7 +80,7 @@ void Display::init() {
 
 void Display::redraw() {
     if (_dspl.isrun())
-        _dspl->run();
+        _dspl->draw();
 }
 
 Display::Display(hnd_t hnd, bool clr, bool visible) :

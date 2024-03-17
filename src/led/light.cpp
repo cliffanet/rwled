@@ -92,6 +92,10 @@ public:
             return END;
         
         while (tmill() - beg >= tm) {
+            // Чтение из файла - наиболее приоритетная задача для стабильности обновления,
+            // особенно при большом числе изменений.
+            // Поэтому тут while, а не return при ожидании нужного времени.
+            // Т.е. даже если придётся подвесить все остальные процессы - лучше так.
             if (!LedRead::recfull()) {
                 CONSOLE("need wait to recfull");
                 return DLY;
@@ -158,6 +162,10 @@ public:
                     return END;
             }
         }
+
+        // что лучше - DLY или RUN
+        // - на worker-interval = 30ms - разница не видна
+        // - на worker-interval = 100ms - при DLY очень плохо обновляется (рывками)
 
         return RUN;
     }
@@ -231,7 +239,7 @@ public:
             _lfwrk->chg(chan);
         }
 
-        return RUN;
+        return DLY;
     }
 };
 
