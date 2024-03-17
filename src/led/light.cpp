@@ -253,7 +253,7 @@ void LedLight::on() {
             fullcolor(pin, 0, 0, 0);
     
     // после включения hwen - надо переинициировать дисплей
-    displayInit();
+    Display::init();
 }
 
 void LedLight::off() {

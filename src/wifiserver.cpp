@@ -5,8 +5,10 @@
 #include "wifiserver.h"
 #include "core/worker.h"
 #include "core/btn.h"
+#include "core/display.h"
 #include "core/indicator.h"
 #include "core/file.h"
+#include "core/clock.h"
 #include "core/log.h"
 #include "jump.h"
 #include "led/read.h"
@@ -255,11 +257,53 @@ class _wsrvWrk : public Wrk {
         ((static_cast<uint16_t>(LedRead::mynum())+1) / 2 + 5) * 1000
     );
 
+    Display _dspl = Display(
+        [this](U8G2 &u8g2) {
+            char s[30];
+
+            u8g2.setFont(u8g2_font_ImpactBits_tr);
+            SCPY("WiFi-server");
+            u8g2.drawStr(SCENT, 28, s);
+
+            wifi_config_t cfg;
+            if (esp_wifi_get_config(WIFI_IF_AP, &cfg) == ESP_OK) {
+                SPRN("ssid: %s", cfg.ap.ssid);
+                u8g2.drawStr(0, 48, s);
+            }
+
+            wifi_sta_list_t cli;
+            if (_upsz > 0) {
+                SPRN("save: %d %% (%0.1f k)", _upcur * 100 / _upsz, static_cast<float>(_upcur) / 1024);
+                u8g2.drawStr(0, 62, s);
+            }
+            else
+            if (_upcur > 0) {
+                SPRN("save: %0.1f k", static_cast<float>(_upcur) / 1024);
+                u8g2.drawStr(0, 62, s);
+            }
+            else
+            if ((esp_wifi_ap_get_sta_list(&cli) == ESP_OK) && (cli.num > 0)) {
+                if (cli.num > 1)
+                    SPRN("conn many: %d !!!", cli.num);
+                else
+                    SPRN("conn rssi: %d dB", cli.sta[0].rssi);
+                u8g2.drawStr(0, 62, s);
+            }
+            else {
+                int32_t ts = _to < 2000 ? (2000 - _to)*30 / 1000 : 0;
+                SPRN("%d:%02d", ts / 60, ts % 60);
+                u8g2.drawStr(40-SWIDTH, 62, s);
+            }
+        }
+    );
+
     DNSServer dns;
     WebServer web;
     LedSaverBuf _prs;
     bool fin = false;
     uint32_t _to = 1;
+    uint32_t _upsz = 0, _upcur = 0;
+    int64_t _ddraw = 0;
 
     void close() {
         fin = true;
@@ -281,6 +325,8 @@ class _wsrvWrk : public Wrk {
                     _to = 1;
                 else
                     close();
+                _upsz = upload.totalSize;
+                _upcur = 0;
                 break;
             case UPLOAD_FILE_WRITE:
                 CONSOLE("read bytes: %d", upload.currentSize);
@@ -292,16 +338,30 @@ class _wsrvWrk : public Wrk {
                     if (!ok) close();
                 }
                 _to = 1;
+                _upcur += upload.currentSize;
                 break;
             case UPLOAD_FILE_END:
                 CONSOLE("upload end");
                 fin = true;
                 web.send_P(200, "text/html", html_ok);
+                _upsz = 0;
+                _upcur = 0;
                 break;
             case UPLOAD_FILE_ABORTED:
                 CONSOLE("upload aborted");
                 fin = true;
+                _upsz = 0;
+                _upcur = 0;
                 break;
+        }
+            
+        // При загрузке файла управление воркеру обратно не отдаётся
+        // до самого завершения загрузки, поэтому надо вручную
+        // перерисовывать дисплей
+        auto tm = tmill();
+        if (tm-_ddraw > 100) {
+            _ddraw = tm;
+            Display::redraw();
         }
     }
     void format() {

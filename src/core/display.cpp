@@ -63,9 +63,14 @@ public:
 
 static WrkProc<_dsplWrk> _dspl;
 
-void displayInit() {
+void Display::init() {
     if (_dspl.isrun())
         _dspl->init();
+}
+
+void Display::redraw() {
+    if (_dspl.isrun())
+        _dspl->run();
 }
 
 Display::Display(hnd_t hnd, bool clr, bool visible) :

@@ -81,6 +81,8 @@ bool LedRead::open()
         CONSOLE("can't open[%s] %s", mode, fname);
         return false;
     }
+
+    CONSOLE("Free Stack: %d", uxTaskGetStackHighWaterMark(NULL));
     
     auto r = _bufopen();
     if (r.type == LedFmt::START) {
