@@ -68,8 +68,8 @@ void pwrterm() {
 
 void loop() {
     uint64_t u = utick();
-    wrkProcess(30);
+    wrkProcess(100);
     u = utm_diff(u);
-    if (u < 29000)
-        delay((30000-u) / 1000);
+    if (u < 90000)
+        delay((100000-u) / 1000);
 }

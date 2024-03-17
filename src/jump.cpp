@@ -17,7 +17,6 @@ class _jmpWrk : public Wrk {
     AltCalc ac;
     AltJmp jmp;
     uint64_t tck;
-    int64_t tm = tmill();
     bool ok, iscnp = false;
 
     Display _dspl = Display(
@@ -99,9 +98,6 @@ public:
     state_t run() {
         if (!ok)
             return END;
-        
-        if (tmill()-tm <= 90) return DLY;
-        tm = tmill();
 
         auto interval = utm_diff(tck, tck) / 1000;
         //CONSOLE("interval: %lld", interval);

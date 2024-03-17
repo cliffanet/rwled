@@ -290,7 +290,7 @@ class _wsrvWrk : public Wrk {
                 u8g2.drawStr(0, 62, s);
             }
             else {
-                int32_t ts = _to < 2000 ? (2000 - _to)*30 / 1000 : 0;
+                int32_t ts = _to < 900 ? (900 - _to)*100 / 1000 : 0;
                 SPRN("%d:%02d", ts / 60, ts % 60);
                 u8g2.drawStr(40-SWIDTH, 62, s);
             }
@@ -418,7 +418,7 @@ public:
         if (fin) return END;
         if (_to > 0) {
             _to ++;
-            if (_to > 2000) {
+            if (_to > 900) {
                 CONSOLE("upload timeout");
                 return END;
             }

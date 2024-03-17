@@ -65,7 +65,7 @@ class _ledtestWrk : public Wrk {
                     u8g2.drawStr(0, 40, s);
                     break;
                 case SCEN:
-                    if ((tmill() % 600) < 300) {
+                    if ((_drawtmr % 4) < 2) {
                         SCPY("SHOW");
                         u8g2.drawStr(0, 40, s);
                     }
@@ -102,10 +102,8 @@ class _ledtestWrk : public Wrk {
 
     int64_t tmsync = 0;
     uint32_t tmscen = 0;
-    uint32_t col = 0;
-    uint16_t _tmr = 0;
     std::function<void()> _sndhnd = NULL;
-    uint8_t _sndtmr = 0;
+    uint8_t _sndtmr = 0, _drawtmr = 0;
     mode_t _mode = WAIT;
 
     void noind() {
@@ -123,6 +121,7 @@ class _ledtestWrk : public Wrk {
         _mode   = WAIT;
         tmsync  = 0;
         tmscen  = 0;
+        _drawtmr= 0;
 
         _btn_idle.activate();
         noind();
@@ -133,6 +132,7 @@ class _ledtestWrk : public Wrk {
         _mode   = STOP;
         tmsync  = 0;
         tmscen  = 0;
+        _drawtmr= 0;
 
         _btn_stop.activate();
         _ind_stop.activate();
@@ -142,6 +142,7 @@ class _ledtestWrk : public Wrk {
         CONSOLE("to SYNC (%lld)", b);
         _mode   = SYNC;
         tmsync  = b;
+        _drawtmr= 0;
 
         _btn_sync.activate();
         _ind_sync.activate();
@@ -151,6 +152,7 @@ class _ledtestWrk : public Wrk {
         CONSOLE("to TIMER (%d)", b);
         _mode   = TIMER;
         tmscen  = b;
+        _drawtmr= 0;
 
         snd([this]() { wifiSend<uint32_t>(0x20, tmscen); });
     }
@@ -158,6 +160,7 @@ class _ledtestWrk : public Wrk {
         CONSOLE("to SCEN (%d)", b);
         _mode   = SCEN;
         tmscen  = b;
+        _drawtmr= 0;
 
         _btn_scen.activate();
         _ind_scen.activate();
@@ -170,6 +173,7 @@ class _ledtestWrk : public Wrk {
     void canopy() {
         CONSOLE("to CANOPY");
         _mode   = CANOPY;
+        _drawtmr= 0;
 
         _btn_idle.activate();
         noind();
@@ -266,6 +270,8 @@ public:
     }
 
     state_t run() {
+        _drawtmr++;
+
         // переключение из TIMER в SCEN
         if ((_mode == TIMER) && (tmill() >= tmsync + tmscen))
             scen(tmscen);

@@ -159,7 +159,7 @@ public:
             }
         }
 
-        return DLY;
+        return RUN;
     }
 
     void end() {

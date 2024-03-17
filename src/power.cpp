@@ -31,17 +31,17 @@ static void pwroff() {
  * ------------------------------------------------------------------------------------------- */
 static void _reset();
 class _powerWrk : public Wrk {
-    const uint8_t _tm[3] = { 50, 30, 60 };
+    const uint8_t _tm[3] = { 12, 10, 20 };
     int8_t _ti = 0;
     uint16_t _c = 0;
     bool _l = false;
     Indicator _ind_fin = Indicator(
-        [this](uint16_t){ return ison ? false : abs(_ti) % 10 < 5; },
-        [this](uint16_t){ return ison ? abs(_ti) % 10 < 5 : false; }
+        [this](uint16_t){ return ison ? false : abs(_ti) % 2 == 0; }, // моргание с интервалом 200-300мс
+        [this](uint16_t){ return ison ? abs(_ti) % 2 == 0 : false; }
     );
     const Indicator _ind = Indicator(
-        [this](uint16_t){ return _l = (_ti >= 0) && (_ti < sizeof(_tm)) && (_c > _tm[_ti]) && (_c < _tm[_ti]+40); },
-        [this](uint16_t){ return (_ti >= 0) || ((_ti % 8) > -4); }
+        [this](uint16_t){ return _l = (_ti >= 0) && (_ti < sizeof(_tm)) && (_c > _tm[_ti]) && (_c < _tm[_ti]+10); },
+        [this](uint16_t){ return true; }
     );
     const Btn _b = Btn([this](){ click(); });
 
@@ -112,7 +112,7 @@ public:
             // отрицательные значения _ti
             // означают ожидание завершения процесса
             _ti --;
-            return _ti < -45 ? END : DLY;
+            return _ti < -15 ? END : DLY;
         }
         
         _c ++;

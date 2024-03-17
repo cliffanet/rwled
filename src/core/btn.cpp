@@ -76,13 +76,13 @@ public:
                 // need wait long-click
                 if (pushed) {
                     _pushed++;
-                    if (_pushed > 50) {
+                    if (_pushed > 15) { // 1.5 sec
                         _click = true;
                         h->lng();
                     }
                 }
                 else
-                if (_pushed > 2) {
+                if (_pushed > 0) {  // 100 ms (антидребезг)
                     _click = true;
                     if (h->sng != NULL)
                         h->sng();
@@ -91,7 +91,11 @@ public:
             else
             if (pushed) {
                 _pushed++;
-                if (_pushed > 2) {
+                if (_pushed > 1) {  // 100 ms (антидребезг)
+                                    // возможно, от антидребезга стоит отказаться совсем,
+                                    // т.к. на интервалах в 100мс ожидание хотябы одного повтора
+                                    // длится 200мс (надо удерживать кнопку это время),
+                                    // а это уже заметно долго
                     _click = true;
                     if (h->sng != NULL)
                         h->sng();
