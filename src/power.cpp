@@ -5,6 +5,7 @@
 #include "power.h"
 #include "core/worker.h"
 #include "core/btn.h"
+#include "core/display.h"
 #include "core/indicator.h"
 #include "core/log.h"
 
@@ -44,6 +45,37 @@ class _powerWrk : public Wrk {
     );
     const Btn _b = Btn([this](){ click(); });
 
+    Display _dspl = Display(
+        [this](U8G2 &u8g2) {
+            char s[30];
+
+            u8g2.setFont(u8g2_font_ImpactBits_tr);
+            if (ison)
+                SCPY("pwr: ON");
+            else
+                SCPY("pwr: OFF");
+            u8g2.drawStr(SCENT, 13, s);
+
+            if (_l) {
+                u8g2.setFont(u8g2_font_bubble_tr);
+                SCPY("PUSH");
+                u8g2.drawStr(SCENT, 50, s);
+            }
+        }, true
+    );
+    Display _dspl_fin = Display(
+        [this](U8G2 &u8g2) {
+            char s[30];
+
+            u8g2.setFont(u8g2_font_bubble_tr);
+            if (ison)
+                SCPY("HELLO");
+            else
+                SCPY("GOODBY");
+            u8g2.drawStr(SCENT, 40, s);
+        }, true, false
+    );
+
     void click() {
         CONSOLE("click: i=%d, c=%d, l=%d", _ti, _c, _l);
         if (_ti < 0) return;
@@ -59,6 +91,7 @@ class _powerWrk : public Wrk {
             // _ti >= 0: индекс для массива _tm[]
             // _ti < 0: ожидание завершения процесса
             _ti = -1;
+            _dspl_fin.show();
             _ind_fin.activate();
         }
     }

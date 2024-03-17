@@ -9,19 +9,23 @@
 #include "src/power.h"
 
 #include "src/led/read.h"
-#include "src/led/work.h"
 #include "src/led/light.h"
+#include "src/led/work.h"
 #include "src/jump.h"
 
 void setup() {
     Serial.setRxBufferSize(4096);
     Serial.begin(115200);
+    LedLight::on(); // Это нужно тут, чтобы включить дисплей
     powerStart(true);
 
     // временно прямое включение для отладки
+    //fileInit();
+    //LedRead::open();
     //pwrmain();
 }
 
+//  это запускается после успешного "включения"
 void pwrinit() {
     CONSOLE("Firmware " FWVER_FILENAME "; Build Date: " __DATE__);
     fileInit();
@@ -32,14 +36,15 @@ void pwrinit() {
     CONSOLE("init finish");
 }
 
+// Это запускается после завершения wifiSrv
 void pwrmain() {
-    ledInit();
     ledWork();
     jumpStart();
 }
 
+// при выключении питания
 void pwrterm() {
-    ledTerm();
+    LedLight::off();
 }
 
 void loop() {

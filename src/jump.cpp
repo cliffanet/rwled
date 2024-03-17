@@ -25,7 +25,7 @@ class _jmpWrk : public Wrk {
             char s[30];
             u8g2.setFont(u8g2_font_ImpactBits_tr);
             SPRN("%.0f", abs(ac.avg().alt()));
-            u8g2.drawStr(SRGHT, 13, s);
+            u8g2.drawStr(SRGHT, 63, s);
 
             switch (jmp.mode()) {
                 case AltJmp::INIT:      SCPY("INIT"); break;
@@ -35,7 +35,7 @@ class _jmpWrk : public Wrk {
                 case AltJmp::CANOPY:    SCPY("cnp"); break;
                 default: s[0] = '\0';
             }
-            u8g2.drawStr(SRGHT, 28, s);
+            u8g2.drawStr(SRGHT, 48, s);
         }
     );
 

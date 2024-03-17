@@ -4,6 +4,7 @@
 #include "../core/worker.h"
 #include "../core/clock.h"
 #include "../core/btn.h"
+#include "../core/display.h"
 #include "../core/indicator.h"
 #include "../core/log.h"
 #include "../wifidirect.h"
@@ -39,6 +40,51 @@ class _ledtestWrk : public Wrk {
         powerOff,
         [this]() { sync(); }
         //[this]() { _mode == WAIT ? canopy() : wait(); } // для тестирования
+    );
+
+    Display _dspl = Display(
+        [this](U8G2 &u8g2) {
+            char s[30];
+
+            u8g2.setFont(u8g2_font_bubble_tr);
+            switch (_mode) {
+                case CANOPY:
+                    SCPY("CNP");
+                    u8g2.drawStr(0, 40, s);
+                    break;
+                case STOP:
+                    SCPY("STOP");
+                    u8g2.drawStr(0, 40, s);
+                    break;
+                case SYNC:
+                    SCPY("SYNC");
+                    u8g2.drawStr(0, 40, s);
+                    break;
+                case TIMER:
+                    SCPY("TMR");
+                    u8g2.drawStr(0, 40, s);
+                    break;
+                case SCEN:
+                    if ((tmill() % 600) < 300) {
+                        SCPY("SHOW");
+                        u8g2.drawStr(0, 40, s);
+                    }
+                    break;
+            }
+
+            u8g2.setFont(u8g2_font_tenstamps_mn);
+            if ((_mode == SYNC) || (_mode == TIMER) || (_mode == SCEN)) {
+                uint32_t tm =
+                    _mode == SYNC   ?   tmill() - tmsync :
+                    _mode == TIMER  ?   tmsync + tmscen - tmill() :
+                    _mode == SCEN   ?   tmill() - tmsync - tmscen :
+                                        0;
+                
+                tm /= 1000;
+                SPRN("%d:%02d", tm / 60, tm % 60);
+                u8g2.drawStr(72-SWIDTH, 60, s);
+            }
+        }
     );
 
     Indicator _ind_stop = Indicator(
