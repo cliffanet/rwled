@@ -17,7 +17,6 @@ class _jmpWrk : public Wrk {
     AltCalc ac;
     AltJmp jmp;
     uint64_t tck;
-    int64_t tm = tmill();
     bool ok, iscnp = false;
 
     Display _dspl = Display(
@@ -36,6 +35,14 @@ class _jmpWrk : public Wrk {
                 default: s[0] = '\0';
             }
             u8g2.drawStr(SRGHT, 48, s);
+
+            SPRN("%.1f", ac.avg().speed());
+            u8g2.drawStr(SRGHT, 33, s);
+
+            if (jmp.newtm() > 0) {
+                SPRN("%d", jmp.newtm()/1000);
+                u8g2.drawStr(SRGHT, 14, s);
+            }
         }
     );
 
@@ -99,9 +106,6 @@ public:
     state_t run() {
         if (!ok)
             return END;
-        
-        if (tmill()-tm <= 90) return DLY;
-        tm = tmill();
 
         auto interval = utm_diff(tck, tck) / 1000;
         //CONSOLE("interval: %lld", interval);

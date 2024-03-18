@@ -10,7 +10,7 @@
 #include "../wifidirect.h"
 #include "../power.h"
 
-class _ledtestWrk : public Wrk {
+class _ledWrk : public Wrk {
     typedef enum {
         WAIT,
         CANOPY,
@@ -181,7 +181,7 @@ class _ledtestWrk : public Wrk {
     }
 
 public:
-    _ledtestWrk() {
+    _ledWrk() {
         CONSOLE("(0x%08x) create", this);
         noind();
 
@@ -246,7 +246,7 @@ public:
             CONSOLE("corrected: %d", tmscen);
         });
     }
-    ~_ledtestWrk() {
+    ~_ledWrk() {
         CONSOLE("(0x%08x) destroy", this);
         wifiRecvClear();
     }
@@ -340,11 +340,11 @@ public:
     }
 };
 
-static WrkProc<_ledtestWrk> _ltwrk;
+static WrkProc<_ledWrk> _ltwrk;
 
 void ledWork() {
     if (!_ltwrk.isrun())
-        _ltwrk = wrkRun<_ledtestWrk>();
+        _ltwrk = wrkRun<_ledWrk>();
 }
 
 void ledByJump(led_jmp_t mode) {

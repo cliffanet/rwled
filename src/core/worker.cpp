@@ -7,6 +7,7 @@
 #include "log.h" // временно для отладки
 
 #include <map>
+#include <string.h> // strncpy
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -14,13 +15,18 @@ typedef std::map<Wrk::key_t, Wrk::run_t> worker2_list_t;
 
 static worker2_list_t wrkall;
 
-bool _wrkAdd(Wrk::run_t ws) {
+bool _wrkAdd(Wrk::run_t ws, const char *tname_P) {
     if (!ws || (ws.get() == 0))
         return false;
 
     wrkall[ws.get()] = ws;
     ws->optset(Wrk::O_INLIST);
-    CONSOLE("Wrk(0x%08x) begin", ws.get());
+#ifdef FWVER_DEBUG
+    char tname[128];
+    strncpy_P(tname, tname_P, sizeof(tname));
+    tname[sizeof(tname)-1]='\0';
+    CONSOLE("Wrk(0x%08x) begin: %s", ws.get(), tname);
+#endif
 
     return true;
 }

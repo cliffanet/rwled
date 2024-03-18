@@ -8,6 +8,7 @@
 #include <stdint.h>
 //#include <stdlib.h>
 #include <memory>
+#include <pgmspace.h>   // PSTR()
 
 /* ------------------------------------------------------------------------------------------- *
  *  Базовый класс для каждого воркера
@@ -143,7 +144,7 @@ class WrkProc {
         std::shared_ptr<T> _w;
 };
 
-bool _wrkAdd(Wrk::run_t ws);
+bool _wrkAdd(Wrk::run_t ws, const char *tname_P);
 
 // Кастомный wrkRun, когда нам надо запустить воркер
 // определённого класса, но вернуть контроллер WrkProc<T>,
@@ -153,7 +154,7 @@ bool _wrkAdd(Wrk::run_t ws);
 template<typename Twrk, typename Tret, typename... _Args>
 inline WrkProc<Tret> wrkRun(_Args&&... __args) {
     std::shared_ptr<Twrk> ws = std::make_shared<Twrk>(__args...);
-    _wrkAdd(ws);
+    _wrkAdd(ws, PSTR(__PRETTY_FUNCTION__));
     return WrkProc<Tret>(ws);
 }
 
