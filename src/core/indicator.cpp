@@ -1,5 +1,7 @@
 
 #include "indicator.h"
+
+#if HWVER < 2
 #include "worker.h"
 #include "clock.h"
 #include "log.h"
@@ -113,3 +115,4 @@ bool Indicator::hide() {
     _ind->chg(this, false);
     return true;
 }
+#endif

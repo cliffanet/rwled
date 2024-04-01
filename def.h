@@ -5,6 +5,8 @@
 #ifndef _def_H
 #define _def_H
 
+#define HWVER               2
+
 #define STRINGIFY(x)        #x
 #define TOSTRING(x)         STRINGIFY(x)
 #define PPCAT_NX(A, B)      A ## B

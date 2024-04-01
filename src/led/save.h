@@ -5,6 +5,7 @@
 #ifndef _led_save_H
 #define _led_save_H
 
+#include "../../def.h"
 #include "../core/txt.h"
 
 #include <functional>

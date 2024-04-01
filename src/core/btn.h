@@ -5,6 +5,7 @@
 #ifndef _btn_H
 #define _btn_H
 
+#include "../../def.h"
 #include <functional>
 
 #define PINBTN  35

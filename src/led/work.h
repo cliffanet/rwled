@@ -5,6 +5,7 @@
 #ifndef _led_work_H
 #define _led_work_H
 
+#include "../../def.h"
 #include <stdint.h>
 
 void ledWork();

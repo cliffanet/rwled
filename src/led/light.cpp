@@ -10,7 +10,11 @@
 #include <string.h>
 #include "esp32-hal-gpio.h"
 
+#if HWVER < 2
 static uint8_t _pinall[] = { 26, 27, 25, 32 };
+#else
+static uint8_t _pinall[] = { 26, 27, 16, 17 };
+#endif
 
 /************************************************************
  *

@@ -5,6 +5,10 @@
 #ifndef _indicator_H
 #define _indicator_H
 
+#include "../../def.h"
+
+#if HWVER < 2
+// отключаем для более поздних версиях, т.к. пересекаются пины
 #include <functional>
 
 #define PINRED  16
@@ -22,6 +26,7 @@ class Indicator {
         bool activate();
         bool hide();
 };
+#endif
 
 
 #endif // _indicator_H

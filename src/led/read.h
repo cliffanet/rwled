@@ -5,6 +5,7 @@
 #ifndef _led_read_H
 #define _led_read_H
 
+#include "../../def.h"
 #include <stddef.h>
 #include <stdint.h>
 #include "fmt.h"

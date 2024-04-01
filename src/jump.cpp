@@ -46,6 +46,7 @@ class _jmpWrk : public Wrk {
         }
     );
 
+#if HWVER < 2
     Indicator _ind_toff = Indicator(
         [this](uint16_t t) { return (t < 3) || ((t > 7) && (t < 10)); },
         [](uint16_t) { return true; },
@@ -60,28 +61,37 @@ class _jmpWrk : public Wrk {
         NULL,
         5000
     );
+#endif
 
     void mode(AltJmp::mode_t prv) {
         CONSOLE("jmpmode %d -> %d (%d) %0.1f", prv, jmp.mode(), jmp.cnt(), ac.alt());
         switch (jmp.mode()) {
             case AltJmp::TAKEOFF:
+#if HWVER < 2
                 _ind_toff.activate();
+#endif
                 break;
             
             case AltJmp::FREEFALL:
                 ledByJump(LED_FF);
+#if HWVER < 2
                 _ind_down.activate();
+#endif
                 iscnp = false;
                 break;
             
             case AltJmp::CANOPY:
                 ledByJump(LED_CNP);
+#if HWVER < 2
                 _ind_down.activate();
+#endif
                 break;
                 
             case AltJmp::GROUND:
                 ledByJump(LED_GND);
+#if HWVER < 2
                 _ind_idle.activate();
+#endif
                 iscnp = false;
                 break;
         }

@@ -35,14 +35,18 @@ class _powerWrk : public Wrk {
     int8_t _ti = 0;
     uint16_t _c = 0;
     bool _l = false;
+
+#if HWVER < 2
     Indicator _ind_fin = Indicator(
         [this](uint16_t){ return ison ? false : abs(_ti) % 10 < 5; },
         [this](uint16_t){ return ison ? abs(_ti) % 10 < 5 : false; }
     );
     const Indicator _ind = Indicator(
-        [this](uint16_t){ return _l = (_ti >= 0) && (_ti < sizeof(_tm)) && (_c > _tm[_ti]) && (_c < _tm[_ti]+40); },
+        [this](uint16_t){ return _l; },
         [this](uint16_t){ return true; }
     );
+#endif
+
     const Btn _b = Btn([this](){ click(); });
 
     Display _dspl = Display(
@@ -92,7 +96,9 @@ class _powerWrk : public Wrk {
             // _ti < 0: ожидание завершения процесса
             _ti = -1;
             _dspl_fin.show();
+#if HWVER < 2
             _ind_fin.activate();
+#endif
         }
     }
 
@@ -108,6 +114,7 @@ public:
     }
 
     state_t run() {
+        _l = (_ti >= 0) && (_ti < sizeof(_tm)) && (_c > _tm[_ti]) && (_c < _tm[_ti]+40);
         if (_ti < 0) {
             // отрицательные значения _ti
             // означают ожидание завершения процесса

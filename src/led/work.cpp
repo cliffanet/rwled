@@ -87,6 +87,7 @@ class _ledWrk : public Wrk {
         }
     );
 
+#if HWVER < 2
     Indicator _ind_stop = Indicator(
         [this](uint16_t t) { return true; },
         NULL
@@ -99,6 +100,7 @@ class _ledWrk : public Wrk {
         [](uint16_t t){ return t % 2 == 0; },
         NULL
     );
+#endif
 
     int64_t tmsync = 0;
     uint32_t tmscen = 0;
@@ -106,11 +108,16 @@ class _ledWrk : public Wrk {
     uint8_t _sndtmr = 0, _drawtmr = 0;
     mode_t _mode = WAIT;
 
+#if HWVER < 2
     void noind() {
         _ind_stop.hide();
         _ind_sync.hide();
         _ind_scen.hide();
     }
+#else
+#define noind()
+#endif
+
     void snd(std::function<void()> _hnd = NULL) {
         _sndhnd = _hnd;
         _sndtmr = 0;
@@ -135,7 +142,9 @@ class _ledWrk : public Wrk {
         _drawtmr= 0;
 
         _btn_stop.activate();
+#if HWVER < 2
         _ind_stop.activate();
+#endif
         snd([]() { wifiSend(0x09); });
     }
     void sync(int64_t b = tmill()) {
@@ -145,7 +154,9 @@ class _ledWrk : public Wrk {
         _drawtmr= 0;
 
         _btn_sync.activate();
+#if HWVER < 2
         _ind_sync.activate();
+#endif
         snd([this]() { wifiSend<uint32_t>(0x11, tmill()-tmsync); });
     }
     void timer(uint32_t b) {
@@ -163,7 +174,9 @@ class _ledWrk : public Wrk {
         _drawtmr= 0;
 
         _btn_scen.activate();
+#if HWVER < 2
         _ind_scen.activate();
+#endif
         tmscen > 0 ?
             snd([this]() { wifiSend<uint32_t>(0x21, tmscen); }) :
             snd(NULL);

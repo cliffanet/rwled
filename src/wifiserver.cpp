@@ -251,11 +251,13 @@ const char html_index[] PROGMEM = R"rawliteral(
  * ------------------------------------------------------------------------------------------- */
 class _wsrvWrk : public Wrk {
     const Btn _b = Btn([](){ wifiSrvStop(); });
+#if HWVER < 2
     const Indicator _ind = Indicator(
         [this](uint16_t t) { return t < LedRead::mynum() * 5 + 20; },
         [this](uint16_t t) { return (t >= 10) && (t < LedRead::mynum() * 5 + 10) & (t % 5 < 2); },
         ((static_cast<uint16_t>(LedRead::mynum())+1) / 2 + 5) * 1000
     );
+#endif
 
     Display _dspl = Display(
         [this](U8G2 &u8g2) {
