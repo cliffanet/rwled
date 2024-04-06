@@ -29,7 +29,7 @@ class _ledWrk : public Wrk {
         [this]() { stop(); }
     );
     Btn _btn_scen = Btn(
-        powerOff,
+        pwr::off,
         [this]() { stop(); }
         //[this]() { canopy(); } // для тестирования
     );
@@ -37,7 +37,7 @@ class _ledWrk : public Wrk {
         [this]() { wait(); }
     );
     Btn _btn_idle = Btn(
-        powerOff,
+        pwr::off,
         [this]() { sync(); }
         //[this]() { _mode == WAIT ? canopy() : wait(); } // для тестирования
     );
@@ -76,7 +76,9 @@ class _ledWrk : public Wrk {
             if ((_mode == SYNC) || (_mode == TIMER) || (_mode == SCEN)) {
                 uint32_t tm =
                     _mode == SYNC   ?   tmill() - tmsync :
-                    _mode == TIMER  ?   tmsync + tmscen - tmill() :
+                    _mode == TIMER  ?   tmsync + tmscen - tmill() + 1000 : // 1000, чтобы при округлении
+                                                                           // ноль был только в самом конце,
+                                                                           // без ожидания ещё секунду
                     _mode == SCEN   ?   tmill() - tmsync - tmscen :
                                         0;
                 

@@ -169,6 +169,10 @@ class Buf {
 
         // чтение данных из файла
         bool fetch() {
+            if (fstr == NULL) {
+                _eof = true;
+                return false;
+            }
             // вычисляем, сколько реально свободного места осталось в буфере, это:
             // - место после _sz
             auto szf = sizeof(_data) > _sz ? sizeof(_data)-_sz : 0;
@@ -336,6 +340,7 @@ static bool _preread() {
             return false;
     }
 
+    //CONSOLE("run");
     xTaskCreateUniversal(//PinnedToCore(
         _preread_f,     /* Task function. */
         nam,            /* name of task. */
@@ -354,7 +359,8 @@ static TaskHandle_t _preread(bool run) {
 
     TaskHandle_t hnd = xTaskGetHandle(nam);
 
-    if (run && (hnd == NULL))
+    if (run && (hnd == NULL)) {
+        //CONSOLE("run");
         xTaskCreateUniversal(//PinnedToCore(
             _preread_f,     /* Task function. */
             nam,            /* name of task. */
@@ -364,11 +370,17 @@ static TaskHandle_t _preread(bool run) {
             NULL,           /* Task handle to keep track of created task */
             0               /* pin task to core 0 */
         );
+    }
 
     return hnd;
 }
 
 bool LedRead::eof() {
+    // если нет инфы в буфере, а файл при этом закрыт
+    // например, если файла нет
+    if (!_buf.recfull() && (fstr == NULL))
+        return true;
+    
     return _buf.eof();
 }
 
@@ -387,6 +399,11 @@ void LedRead::reset() {
 }
 
 LedRec LedRead::get() {
+    // если нет инфы в буфере, а файл при этом закрыт
+    // например, если файла нет
+    if (!_buf.recfull() && (fstr == NULL))
+        return LedRec::fail();
+
     // инициируем догрузку пре-буфера, если требуется
     if (_buf.needfetch())
         _preread(true);

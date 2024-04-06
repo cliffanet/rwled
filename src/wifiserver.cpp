@@ -265,7 +265,7 @@ class _wsrvWrk : public Wrk {
 
             u8g2.setFont(u8g2_font_ImpactBits_tr);
             SCPY("WiFi-server");
-            u8g2.drawStr(SCENT, 28, s);
+            u8g2.drawStr(SCENT, 30, s);
 
             wifi_config_t cfg;
             if (esp_wifi_get_config(WIFI_IF_AP, &cfg) == ESP_OK) {

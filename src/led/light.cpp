@@ -92,8 +92,10 @@ public:
     const chan_t& chan(uint8_t n) { return _all[n]; }
 
     state_t run() {
-        if (LedRead::eof())
+        if (LedRead::eof()) {
+            CONSOLE("eof");
             return END;
+        }
         
         while (tmill() - beg >= tm) {
             // Чтение из файла - наиболее приоритетная задача для стабильности обновления,
@@ -276,10 +278,10 @@ void LedLight::off() {
 
 
 void LedLight::start(int64_t tm) {
-    if (!_lfwrk.isrun())
-        _lfwrk = wrkRun<_fillWrk>(tm);
-    else
+    if (_lfwrk.isrun())
         _lfwrk->sync(tm);
+    else
+        _lfwrk = wrkRun<_fillWrk>(tm);
 
     if (!_lswrk.isrun())
         _lswrk = wrkRun<_showWrk>();

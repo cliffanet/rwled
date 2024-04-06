@@ -151,15 +151,65 @@ public:
 static WrkProc<_powerWrk> _pwr;
 
 /* ------------------------------------------------------------------------------------------- *
+ *  индикатор заряда батарей
+ * ------------------------------------------------------------------------------------------- */
+
+#if HWVER >= 2
+class _battWrk : public Wrk {
+    static double _fmap(uint32_t in, uint32_t in_min, uint32_t in_max, double out_min, double out_max) {
+        return  (out_max - out_min) * (in - in_min) / (in_max - in_min) + out_min;
+    }
+    static uint8_t _sym(uint8_t pin) {
+        //return 3.35 * pwrBattRaw() / 4095 * 3 / 2;
+        uint16_t raw = analogRead(pin);
+        //auto v = _fmap(raw, 0x0000, 0x0fff, 0.16, 3.35) * 4 / 3;
+        //CONSOLE("pin: %d, v: %0.2f", pin, v);
+
+        return
+            raw > 3880 ? 5 :
+            raw > 3670 ? 4 :
+            raw > 3550 ? 3 :
+            raw > 3430 ? 2 :
+            raw > 3310 ? 1 :
+            0;
+    }
+
+    Display _dspl = Display(
+        [](U8G2 &u8g2) {
+            u8g2.setFont(u8g2_font_battery19_tn);
+            u8g2.setFontDirection(1);
+            u8g2.drawGlyph(35,  0, '0' + _sym(PINBATTCD));
+            u8g2.drawGlyph(35,  7, '0' + _sym(PINBATTAB));
+            u8g2.setFontDirection(0);
+        }
+    );
+public:
+    _battWrk() {
+        pinMode(PINBATTAB, INPUT);
+        pinMode(PINBATTCD, INPUT);
+    }
+    state_t run() { return DLY; }
+};
+static WrkProc<_battWrk> _batt;
+#endif
+
+/* ------------------------------------------------------------------------------------------- *
  *  Запуск / остановка
  * ------------------------------------------------------------------------------------------- */
 
-void powerOff() {
-    powerStart(false);
+
+void pwr::hwon() {
+#if HWVER >= 2
+    pinMode(PINHWEN, OUTPUT);
+    digitalWrite(PINHWEN, LOW);
+#endif
 }
 
-bool powerStart(bool pwron)
-{
+void pwr::off() {
+    start(false);
+}
+
+bool pwr::start(bool pwron) {
     if (_pwr.isrun())
         return false;
     
@@ -168,7 +218,7 @@ bool powerStart(bool pwron)
     return true;
 }
 
-bool powerStop() {
+bool pwr::stop() {
     if (!_pwr.isrun())
         return false;
 
@@ -179,4 +229,11 @@ bool powerStop() {
 
 static void _reset() {
     _pwr.reset();
+}
+
+void pwr::batt() {
+#if HWVER >= 2
+    if (!_pwr.isrun())
+        _batt = wrkRun<_battWrk>();
+#endif
 }

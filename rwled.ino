@@ -29,14 +29,17 @@
 SET_LOOP_TASK_STACK_SIZE(16*1024);
 
 void setup() {
+    pwr::hwon(); // включение датчика давления и дисплея.
+    // должно быть выполнено как можно более заранее до инициализации дисплея.
+    // Инициализация зависает, если дисплей не успевает запитаться к этому моменту.
     Serial.setRxBufferSize(4096);
     Serial.begin(115200);
-    LedLight::on(); // Это нужно тут, чтобы включить дисплей
-    powerStart(true);
+    pwr::start(true);
 
     // временно прямое включение для отладки
     //fileInit();
     //LedRead::open();
+    //pwr::batt();
     //pwrmain();
 
     // Print unused stack for the task that is running setup()
@@ -49,6 +52,7 @@ void pwrinit() {
     CONSOLE("Firmware " FWVER_FILENAME "; Build Date: " __DATE__);
     fileInit();
     LedRead::open();
+    pwr::batt();
     //initConsoleReader(Serial);
     wifiSrvStart();
     
@@ -57,6 +61,7 @@ void pwrinit() {
 
 // Это запускается после завершения wifiSrv
 void pwrmain() {
+    LedLight::on();
     ledWork();
     jumpStart();
 }
