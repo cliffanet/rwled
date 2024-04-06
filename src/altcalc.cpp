@@ -457,8 +457,8 @@ void AltJmp::tick(const AltCalc &ac) {
     }
 }
 
-void AltJmp::reset() {
-    _mode   = INIT;
+void AltJmp::reset(mode_t m) {
+    _mode   = m;
     _cnt    = 0;
     _tm     = 0;
     _c_cnt  = 0;
@@ -550,4 +550,59 @@ void AltStrict::tick(const AltCalc &ac) {
                 _nxt    = AltJmp::GROUND;
         }
     }
+}
+
+/*******************************
+ *          AltSleep
+ *******************************/
+
+#include "core/log.h"
+void AltSleep::tick(float press, uint64_t tm) {
+    if (_istoff || (_pressgnd == 0) || (_gndtm == 0)) {
+        clear();
+        _pressgnd = press;
+        _gndtm = tm;
+        return;
+    }
+
+    float alt = press2alt(_pressgnd, press);
+    CONSOLE("_pressgnd: %.2f, press: %.2f, alt: %.2f, _altlast: %.2f, _toffcnt: %d; tdiff: %lld", _pressgnd, press, alt, _altlast, _toffcnt, tm-_gndtm);
+
+    if (alt > 100) {
+        _toffcnt = 0;
+        _istoff = true;
+        return;
+    }
+    if (alt > (_altlast + 0.7)) {
+        if (_toffcnt < 0)
+            _toffcnt = 0;
+        _toffcnt ++;
+        if (_toffcnt >= 5) {
+            CONSOLE("is toff");
+            _toffcnt = 0;
+            _istoff = true;
+            return;
+        }
+    }
+    else {
+        if (_toffcnt > 0)
+            _toffcnt --;
+        _toffcnt --;
+        if (_toffcnt <= -10) {
+            CONSOLE("gnd reset");
+            _pressgnd = press;
+            _toffcnt = 0;
+            _gndtm = tm;
+        }
+    }
+    
+    _altlast = alt;
+}
+
+void AltSleep::clear() {
+    _pressgnd = 0;
+    _altlast = 0;
+    _toffcnt = 0;
+    _istoff = false;
+    _gndtm = 0;
 }

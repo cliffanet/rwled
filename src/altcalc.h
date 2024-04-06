@@ -248,7 +248,7 @@ public:
     const uint32_t  cnt()   const { return _cnt; }
     const uint32_t  tm()    const { return _tm; }
     const AltProfile &ff()  const { return _ff; }
-    void reset();
+    void reset(mode_t m = INIT);
 
     const uint32_t  newtm() const { return _c_tm; }
     const uint32_t  newcnt() const { return _c_cnt; }
@@ -289,5 +289,24 @@ private:
     AltProfile _prof;
     AltDirect _dir;
 };
+
+
+/**************************************************************************/
+//  AltSleep        - Для мониторинга начала взлёта из спящего режима
+/**************************************************************************/
+
+class AltSleep {
+    float _pressgnd = 0, _altlast = 0;
+    int8_t _toffcnt = 0;
+    bool _istoff = false;
+    int64_t _gndtm = 0;
+public:
+    const bool  istoff()    const { return _istoff; }
+    const float pressgnd()  const { return _pressgnd; }
+
+    void tick(float press, uint64_t tm); // tm = ms - текущее время
+    void clear();
+};
+
 
 #endif // __altcalc_H
