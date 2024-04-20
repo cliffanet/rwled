@@ -361,7 +361,7 @@ void AltJmp::tick(const AltCalc &ac) {
             break;
         
         case GROUND:
-            if (avg.speed() > AC_SPEED_FLAT) {
+            if ((avg.speed() > AC_SPEED_FLAT) || (avg.alt() > 100)) {
                 _c_cnt++;
                 _c_tm += tm;
                 if ((_c_cnt >= AC_JMP_TOFF_COUNT) && (_c_tm >= AC_JMP_TOFF_TIME))
