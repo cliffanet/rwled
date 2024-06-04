@@ -15,7 +15,7 @@
 //
 // Порог скорости для режима FLAT (abs, m/s)
 // Он же является порогом удержания для режима canopy
-#define AC_SPEED_FLAT           1.5
+#define AC_SPEED_FLAT           1.0
 
 float press2alt(float pressgnd, float pressure);
 
