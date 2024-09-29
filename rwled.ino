@@ -11,6 +11,7 @@
 #include "src/led/read.h"
 #include "src/led/light.h"
 #include "src/led/work.h"
+#include "src/led/test.h"
 #include "src/jump.h"
 
 // Два основных поедателя стэка:
@@ -55,15 +56,19 @@ void pwrinit() {
     pwr::batt();
     //initConsoleReader(Serial);
     wifiSrvStart();
+
+    LedLight::on();
+    LedTest::start();
     
     CONSOLE("init finish");
 }
 
 // Это запускается после завершения wifiSrv
 void pwrmain() {
-    LedLight::on();
+    //LedLight::on();
     ledWork();
     jumpStart();
+    LedTest::stop();
 }
 
 // при выключении питания

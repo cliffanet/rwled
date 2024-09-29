@@ -8,7 +8,7 @@
 #include "../../def.h"
 #include <stdint.h>
 
-#define LEDLIGHT_NUMPIXELS      100
+#define LEDLIGHT_NUMPIXELS      128
 #define LEDLIGHT_PINENABLE      14
 
 #define LED_CHANA               0x1

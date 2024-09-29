@@ -65,6 +65,12 @@ class _powerWrk : public Wrk {
                 SCPY("PUSH");
                 u8g2.drawStr(SCENT, 50, s);
             }
+            else {
+                SCPY(FWVER_NAME);
+                u8g2.drawStr(0, 64, s);
+                SCPY(__DATE__);
+                u8g2.drawStr(SRGHT, 64, s);
+            }
         }, true
     );
     Display _dspl_fin = Display(
